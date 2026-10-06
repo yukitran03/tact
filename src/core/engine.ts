@@ -320,6 +320,16 @@ export class Engine {
     });
     const req = parsePlanRequest(text);
     const mode = this.mode(group.id);
+    if (mode !== "off" && (groupRead.failed || attendees.every((a) => !a.readOk))) {
+      // Refusing beats planning blind: without the reads, every veto silently disappears.
+      return {
+        intent: "plan-unreadable",
+        out: [room(lang === "vi"
+          ? "Mình chưa đọc được trí nhớ của nhóm trên Walrus lúc này, nên mình không đoán bừa — một kế hoạch bỏ qua dị ứng của ai đó còn tệ hơn không có kế hoạch. Thử lại sau vài phút nhé."
+          : "I can't reach the table's memory on Walrus right now, so I won't guess — a plan that ignores someone's allergy is worse than no plan. Try again in a few minutes.",
+        { type: "plan-unavailable", error: groupRead.error ?? attendees.find((a) => !a.readOk)?.name })],
+      };
+    }
     const last = this.ledger.lastPlan(group.id);
     const lastSlug = last ? (JSON.parse(last.decision) as StoredPlan).choice?.slug : undefined;
 

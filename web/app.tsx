@@ -232,7 +232,7 @@ function PlanCard({ m, onReceipt }: { m: Msg; onReceipt: (id: string) => void })
       <div class="pc-top">
         <div class="pc-kicker"><Icon.table /> Tact's pick</div>
         <div class="pc-venue">{choice?.name ?? "No place fits yet"}</div>
-        {choice ? <div class="pc-meta">{[choice.area, choice.price ? `~${choice.price}/person` : null, `works for all ${meta.people}`].filter(Boolean).join(" · ")}</div> : null}
+        {choice ? <div class="pc-meta">{[choice.area, choice.price ? `~${choice.price}/person` : null, meta.unreadable?.length ? `checked ${meta.people - meta.unreadable.length} of ${meta.people}` : `works for all ${meta.people}`].filter(Boolean).join(" · ")}</div> : null}
       </div>
       <div class="pc-text md" dangerouslySetInnerHTML={md(m.text)} />
       <div class="pc-badges">

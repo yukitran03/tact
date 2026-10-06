@@ -43,7 +43,9 @@ Six of 57 writes in our first seed failed this way.
 
 A 429 from the mainnet relayer names the layer: `{"error":"Rate limit exceeded","layer":"delegate_key","limit":"60 weighted-requests/min","retry_after_seconds":60}`. With `remember` weighing 5, **one delegate key gets 12 writes a minute** for every user of a server-side bot. Status polls (weight 1) spend the same budget, so one poller per pending write — what `rememberAndWait` does per call — hits the limit by itself once ten writes are in flight.
 
-What worked for us: pace writes at 10/min, answer users from a write-ahead buffer, and confirm all pending jobs with a single `getRememberBulkStatus()` every few seconds. Suggestion: document the weights and recommend the bulk poller in the multi-tenant cookbook.
+There is a second, slower layer. After two demo seeds and an eval in the same hour, every call — recall included — answered `{"error":"Rate limit exceeded","layer":"account_sustained","limit":"1000 weighted-requests/hour","retry_after_seconds":300}`. **1,000 weighted requests an hour is about 200 writes an hour for the whole account**, before any reads or polls; a bot with fifty active users onboarding at once would exhaust it in minutes, and once it does, recall stops too — the bot loses its memory for everyone, not just its ability to write.
+
+What worked for us: pace writes at 10/min, answer users from a write-ahead buffer, confirm all pending jobs with a single `getRememberBulkStatus()` every few seconds, and treat a failed recall as "couldn't read" in the reply rather than as "no memories". Suggestions: document the three layers (`delegate_key` per minute, account per minute, `account_sustained` per hour) and the weights; return `X-RateLimit-Remaining` per layer; consider a separate, larger budget for reads so a burst of writes cannot blind every recall.
 
 ---
 

@@ -31,6 +31,8 @@ export interface PublicPlanContext {
   unknownVenues: boolean;
   /** Set when the request named a cuisine that no place satisfying everyone serves. */
   cuisineMiss?: string;
+  /** People whose memory could not be read from Walrus this time; the plan must not claim to fit them. */
+  unreadable: string[];
 }
 
 export function publicContext(plan: PlanResult, lang: Lang): PublicPlanContext {
@@ -53,6 +55,7 @@ export function publicContext(plan: PlanResult, lang: Lang): PublicPlanContext {
     dayNote: plan.dayConflict ? { day: plan.dayConflict.day, alternativeDay: plan.dayConflict.alternativeDay, busyCount: plan.dayConflict.busyMemberIds.length } : undefined,
     unknownVenues: plan.unknownVenues,
     cuisineMiss: plan.request.cuisine && c && !c.venue.cuisine.includes(plan.request.cuisine) ? cuisineLabel(plan.request.cuisine) : undefined,
+    unreadable: plan.attendees.filter((a) => !a.readOk).map((a) => a.name),
   };
 }
 
@@ -65,6 +68,12 @@ export function planTemplate(ctx: PublicPlanContext): string {
       "Mình chưa biết quán nào của nhóm. Thêm quán kiểu: `thêm quán: Phở Hòa, phở, ~70k, Quận 3` — mình sẽ nhớ trên Walrus và kiểm tra với mọi người lần sau.");
   }
   const lines: string[] = [];
+  if (ctx.unreadable.length && ctx.unreadable.length >= ctx.people) {
+    // Refusing beats planning blind: a plan that ignores an allergy is worse than no plan.
+    return L(lang,
+      "I can't reach anyone's memory on Walrus right now, so I won't guess — a plan that ignores someone's allergy is worse than no plan. Try again in a few minutes.",
+      "Mình chưa đọc được trí nhớ của ai trên Walrus lúc này, nên mình không đoán bừa — một kế hoạch bỏ qua dị ứng của ai đó còn tệ hơn không có kế hoạch. Thử lại sau vài phút nhé.");
+  }
   if (ctx.dayNote) {
     const alt = ctx.dayNote.alternativeDay ? dayName(ctx.dayNote.alternativeDay, lang) : null;
     lines.push(L(lang,
@@ -85,9 +94,15 @@ export function planTemplate(ctx: PublicPlanContext): string {
   lines.push(L(lang, `How about ${name}?`, `Đi ${name} nhé?`));
   const why = c.reasons.filter((r) => r !== "fits someone's taste").slice(0, 2);
   const tasteNote = c.reasons.includes("fits someone's taste");
+  const checked = ctx.people - ctx.unreadable.length;
   lines.push(L(lang,
-    `It works for all ${ctx.people} of you${why.length ? ` — ${why.join(", ")}` : ""}${tasteNote ? (why.length ? ", and it fits someone's taste" : " and fits someone's taste") : ""}.`,
-    `Hợp với cả ${ctx.people} người${why.length ? ` — ${why.join(", ")}` : ""}${tasteNote ? ", và hợp khẩu vị của một bạn trong nhóm" : ""}.`));
+    `It works for ${ctx.unreadable.length ? `the ${checked} of you I could check` : `all ${ctx.people} of you`}${why.length ? ` — ${why.join(", ")}` : ""}${tasteNote ? (why.length ? ", and it fits someone's taste" : " and fits someone's taste") : ""}.`,
+    `Hợp với ${ctx.unreadable.length ? `${checked} người mình kiểm tra được` : `cả ${ctx.people} người`}${why.length ? ` — ${why.join(", ")}` : ""}${tasteNote ? ", và hợp khẩu vị của một bạn trong nhóm" : ""}.`));
+  if (ctx.unreadable.length) {
+    lines.push(L(lang,
+      `I couldn't reach ${ctx.unreadable.join(", ")}'s memory on Walrus just now, so I can't promise it fits them — ask again in a few minutes.`,
+      `Mình chưa đọc được trí nhớ của ${ctx.unreadable.join(", ")} trên Walrus lúc này, nên chưa chắc hợp với họ — hỏi lại sau vài phút nhé.`));
+  }
   if (ctx.alternatives.length) {
     lines.push(L(lang, `Backup: ${ctx.alternatives.map((a) => a.name).join(" or ")}.`, `Dự phòng: ${ctx.alternatives.map((a) => a.name).join(" hoặc ")}.`));
   }

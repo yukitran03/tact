@@ -141,4 +141,14 @@ describe("engine", () => {
     expect(rows.length).toBe(2);
     expect(rows.every((r) => r.status === "done" && r.blob_id)).toBe(true);
   });
+
+  test("when Walrus can't be read, Tact says so instead of planning blind", async () => {
+    await seed(s);
+    const ledger = s.ledger;
+    const failing = new MemoryService(new MockBackend({ failRecall: true }), ledger, { namespaceSecret: "test", prefix: "tact-test" });
+    const blind = new Engine(failing, ledger, null, { polishBudgetMs: 0, answerBudgetMs: 0 });
+    const out = await blind.handle({ channel: "web", roomType: "group", roomId: s.group.id, memberId: s.chi.id, text: "where should we eat friday?" });
+    expect(out[0].text).toMatch(/won't guess/);
+    expect(out[0].text).not.toMatch(/works for/i);
+  });
 });

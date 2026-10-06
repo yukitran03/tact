@@ -20,7 +20,7 @@ Party-aware memory on <a href="https://github.com/MystenLabs/MemWal">Walrus Memo
 
 Memory makes a bot useful and dangerous in the same move. In a one-to-one chat that is fine. In a group, the thing you told the bot privately — *I'm allergic to shellfish*, *money is tight this month*, *I can't do Thursdays* — is exactly what it must use and must never say.
 
-The big assistants have stepped around this rather than solved it: ChatGPT's group chats never used personal memory and were retired in July 2026; Meta AI's memory works only in one-to-one chats. Research says prompt-level defences leak far more in multi-party settings than in one-to-one ones (MuPPET, 2026). So group chats still ask *"who's vegetarian again?"* every Friday.
+The big assistants have stepped around this rather than solved it: ChatGPT's group chats did not use personal memory, and OpenAI has since retired them ([help article](https://help.openai.com/en/articles/12703475-group-chats-in-chatgpt)); Meta AI's memory works only in one-to-one chats. Research finds models leak substantially more in multi-party settings than one-to-one evaluations suggest ([MuPPET](https://arxiv.org/abs/2606.23217)). So group chats still ask *"who's vegetarian again?"* every Friday.
 
 ## What Tact does
 
@@ -38,6 +38,14 @@ Tact → table                How about Bánh Mì Chay Hòa (Binh Thanh · ~35k/
 Tact → Bảo (private)        🔒 I quietly used your memories — Ốc Đào Corner serves shellfish,
                             and you're allergic to it. The group only heard it "didn't work for everyone".
 ```
+
+<p align="center">
+  <img src="docs/screenshots/table-receipt-bao.png" width="860" alt="The demo table seen by Bảo: Tact's pick, with a receipt of how many memories were read from Walrus and which of Bảo's own memories shaped it">
+</p>
+<p align="center">
+  <img src="docs/screenshots/dm-shield-bao.png" width="560" alt="Bảo's private chat with Tact: facts saved with their tier, and the private note about the plan">
+  <img src="docs/screenshots/mobile-table-dung.png" width="220" alt="The table on a phone">
+</p>
 
 ### Three tiers, enforced in code
 
@@ -62,7 +70,7 @@ Change a tier by saying so (*"you can tell the group I love spicy food"*) or fro
 - **Every memory is self-describing.** One readable sentence plus a tag block (`⟦tact|v1|kind=allergy|tier=discreet|key=allergy:shellfish|…⟧`), SEAL-encrypted into its own Walrus blob. Tact's SQLite holds job status and blob ids, never memory text after a write lands.
 - **Walrus is the source of truth.** Planning recalls each attendee's namespace in parallel (five namespaces in about 2–4 s on mainnet) and rebuilds profiles, tiers and supersede chains from the tags alone. The test *"a fresh server rebuilds everything from Walrus alone"* wipes the database and plans again.
 - **Corrections supersede; nothing is overwritten.** Walrus Memory is append-only, so *"I'm not vegetarian any more"* writes a newer fact with the same key and the newest wins. *"Forget that"* writes a retraction. Tact says plainly that the old encrypted blob stays until its storage expires.
-- **Writes never block a reply.** The relayer takes about 20 s to confirm a blob. Tact answers at once from a write-ahead buffer, submits through a paced queue (the account shares about 24 writes a minute across all users), and confirms every pending job with one bulk-status call.
+- **Writes never block a reply.** The relayer takes about 20 s to confirm a blob. Tact answers at once from a write-ahead buffer, submits through a paced queue, and confirms every pending job with one bulk-status call. The relayer's budgets are tight for a multi-user bot — measured: 60 weighted requests a minute per delegate key (a write weighs 5, so 12 writes a minute) and 1,000 an hour per account, after which recall is refused too. When a read fails, Tact says it couldn't read that person's memory instead of planning as if they had no allergies.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full flow.
 
@@ -99,7 +107,7 @@ Create a bot with @BotFather, set `TELEGRAM_BOT_TOKEN`, run `bun run telegram`. 
 
 | | |
 |---|---|
-| `bun test` | 31 tests: extraction (EN/VI), planner, shield, engine end-to-end with a leaking model, Telegram adapter against a fake Bot API |
+| `bun test` | 34 tests: extraction (EN/VI), planner, shield, engine end-to-end with a leaking model, refusal when Walrus is unreachable, API privacy, Telegram adapter against a fake Bot API |
 | `bun run eval [--live] [--no-llm]` | the table at the top of this page |
 | `bun run diagnose` | checks the account against the package the relayer serves; finds the migrated account if yours is from the retired deployment |
 | `bun run evidence` | submission evidence: account, agent id, blobs per person, Walruscan links |

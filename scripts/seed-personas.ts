@@ -70,6 +70,7 @@ if (process.argv.includes("--topup")) {
   // Re-submit failed writes and add any fact the current extractor finds that the
   // ledger does not already hold — without replaying (and duplicating) the chats.
   const { extractByRules } = await import("../src/core/extract");
+  memory.resumeInFlight(); // rows a killed run left queued are marked failed, then retried below
   const retried = memory.retryFailed();
   let added = 0;
   for (const p of PERSONAS) {
@@ -100,8 +101,11 @@ const say = async (key: string, text: string, room: "dm" | "group") => {
 };
 
 console.log(`memory: ${app.backend.kind} · group ${group.name} (${group.inviteCode})`);
-for (const p of PERSONAS) for (const t of p.dm) await say(p.key, t, "dm");
-for (const [k, t] of PLACES) await say(k, t, "group");
+const plansOnly = process.argv.includes("--plans-only");
+if (!plansOnly) {
+  for (const p of PERSONAS) for (const t of p.dm) await say(p.key, t, "dm");
+  for (const [k, t] of PLACES) await say(k, t, "group");
+}
 
 console.log("\nwaiting for every write to land on Walrus…");
 let last = -1;

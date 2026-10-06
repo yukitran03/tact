@@ -61,6 +61,9 @@ I measured three bots on the same demo table — four people, ten places, ten pl
 
 ## Try it
 
-The repo has a 31-test suite, an eval you can rerun (`bun run eval --live`), a web app and a Telegram bot. It runs on a local open-weight model (Qwen3 1.7B through Ollama) or any OpenAI-compatible endpoint. The model is never in charge of who can eat where — that is the point.
+The repo has a 34-test suite, an eval you can rerun (`bun run eval --live`), a web app and a Telegram bot. It runs on a local open-weight model (Qwen3 1.7B through Ollama) or any OpenAI-compatible endpoint. The model is never in charge of who can eat where — that is the point.
 
 *Built for Walrus Sessions 8: Chatbots That Remember.* #WalrusMemory
+
+---
+Sources: OpenAI help, [group chats and memory](https://help.openai.com/en/articles/12703475-group-chats-in-chatgpt) and [retiring group chats](https://help.openai.com/en/articles/12703475-retiring-group-chats-in-chatgpt); [Meta AI memory only in individual chats](https://alternativeto.net/news/2024/10/whatsapp-s-new-meta-ai-chat-memory-to-personalize-conversations-with-stored-details); [MuPPET, multi-party privacy in LLM agents](https://arxiv.org/abs/2606.23217). Re-check each link before publishing.
