@@ -1,5 +1,5 @@
 import type { StoredFact, Tier } from "./types";
-import { areaIn, cuisinesIn, DIET_EXCLUDES, fold, moneyIn, weekdaysIn, type Diet } from "./lexicon";
+import { areaIn, cuisineLabel, cuisinesIn, DIET_EXCLUDES, fold, moneyIn, weekdaysIn, type Diet } from "./lexicon";
 
 export interface Attendee {
   memberId: string;
@@ -164,7 +164,7 @@ export function plan(req: PlanRequest, attendees: Attendee[], groupFacts: Stored
           const hit = (f.attrs.cuisine && v.cuisine.includes(f.attrs.cuisine)) || (f.attrs.food && v.tags.includes(f.attrs.food));
           if (hit) {
             score += 2;
-            reasons.push(f.tier === "shared" ? `${a.name} loves ${f.attrs.cuisine ?? f.attrs.food}` : "fits someone's taste");
+            reasons.push(f.tier === "shared" ? `${a.name} loves ${f.attrs.cuisine ? cuisineLabel(f.attrs.cuisine) : f.attrs.food}` : "fits someone's taste");
             influences.push({ memberId: a.memberId, blobId: f.blobId, factKey: f.key, kind: f.kind, tier: f.tier, effect: "boosted", venue: v.slug, detail: `${a.name} likes ${f.attrs.cuisine ?? f.attrs.food}` });
           }
         }
@@ -197,7 +197,7 @@ export function plan(req: PlanRequest, attendees: Attendee[], groupFacts: Stored
       if (r > 0) reasons.push(`${vd.by ?? "someone"} liked it last time`);
       influences.push({ memberId: null, blobId: vd.blobId, factKey: vd.key, kind: vd.kind, tier: vd.tier, effect: r > 0 ? "boosted" : "lowered", venue: v.slug, detail: vd.text });
     }
-    if (req.cuisine && v.cuisine.includes(req.cuisine)) { score += 3; reasons.push(`it's ${req.cuisine}, as asked`); }
+    if (req.cuisine && v.cuisine.includes(req.cuisine)) { score += 3; reasons.push(`it's ${cuisineLabel(req.cuisine)}, as asked`); }
     if (req.area && v.area && fold(req.area) === fold(v.area)) { score += 2; reasons.push(`it's in ${v.area}`); }
     if (opts.lastVenueSlug && opts.lastVenueSlug === v.slug) { score -= 2; }
     scored.push({ venue: v, score, reasons: [...new Set(reasons)] });

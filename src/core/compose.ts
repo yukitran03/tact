@@ -1,6 +1,6 @@
 import type { PlanResult, ScoredVenue } from "./planner";
 import type { Fact, StoredFact, Tier } from "./types";
-import { DAY_LABEL, formatMoney } from "./lexicon";
+import { cuisineLabel, DAY_LABEL, formatMoney } from "./lexicon";
 import type { LLM } from "../llm/provider";
 import { scanForLeaks, type LeakHit, type SensitiveTerm } from "./firewall";
 
@@ -29,6 +29,8 @@ export interface PublicPlanContext {
   ruledOutCount: number;
   dayNote?: { day: string; alternativeDay?: string; busyCount: number };
   unknownVenues: boolean;
+  /** Set when the request named a cuisine that no place satisfying everyone serves. */
+  cuisineMiss?: string;
 }
 
 export function publicContext(plan: PlanResult, lang: Lang): PublicPlanContext {
@@ -50,6 +52,7 @@ export function publicContext(plan: PlanResult, lang: Lang): PublicPlanContext {
     ruledOutCount: plan.ruledOut.length,
     dayNote: plan.dayConflict ? { day: plan.dayConflict.day, alternativeDay: plan.dayConflict.alternativeDay, busyCount: plan.dayConflict.busyMemberIds.length } : undefined,
     unknownVenues: plan.unknownVenues,
+    cuisineMiss: plan.request.cuisine && c && !c.venue.cuisine.includes(plan.request.cuisine) ? cuisineLabel(plan.request.cuisine) : undefined,
   };
 }
 
@@ -76,6 +79,9 @@ export function planTemplate(ctx: PublicPlanContext): string {
   }
   const c = ctx.choice;
   const name = `**${c.name}**${[c.area, c.price ? `~${c.price}/${L(lang, "person", "người")}` : null].filter(Boolean).length ? ` (${[c.area, c.price ? `~${c.price}/${L(lang, "person", "người")}` : null].filter(Boolean).join(" · ")})` : ""}`;
+  if (ctx.cuisineMiss) {
+    lines.push(L(lang, `No ${ctx.cuisineMiss} place I know works for everyone this time.`, `Lần này không có quán ${ctx.cuisineMiss} nào hợp với cả nhóm.`));
+  }
   lines.push(L(lang, `How about ${name}?`, `Đi ${name} nhé?`));
   const why = c.reasons.filter((r) => r !== "fits someone's taste").slice(0, 2);
   const tasteNote = c.reasons.includes("fits someone's taste");
@@ -129,7 +135,8 @@ export async function polishGroupReply(
       new Promise<string>((_, rej) => setTimeout(() => rej(new Error("polish budget exceeded")), budgetMs)),
     ]);
     const text = out.trim();
-    const hits = scanForLeaks(text, terms, allow);
+    // Model drafts are held to the strict scan: even generic words like "allergic" disqualify them.
+    const hits = scanForLeaks(text, terms, allow, { strict: true });
     if (!text || hits.length) return { text: template, source: "template", leakHits: hits, llmMs: Math.round(performance.now() - t0) };
     const mentionsChoice = text.toLowerCase().includes(ctx.choice.name.toLowerCase().slice(0, 6));
     return mentionsChoice
@@ -185,6 +192,14 @@ export const T = {
   whyNot: (lang: Lang) => L(lang,
     "It didn't work for everyone this time. I keep the reasons to myself — if it's about you, DM me and I'll explain.",
     "Lần này quán đó chưa hợp với tất cả. Lý do mình giữ kín — nếu liên quan đến bạn, nhắn riêng mình sẽ giải thích."),
+  keepsPrivate: (lang: Lang) => L(lang,
+    "People tell me those things privately, and that's where they stay. Ask me for a plan and I'll make sure it works for everyone — without saying who needed what.",
+    "Mọi người kể riêng với mình những chuyện đó, và mình giữ kín. Cứ hỏi mình lên kế hoạch, mình sẽ chọn sao cho hợp với tất cả — không nói ai cần gì."),
+  availability: (day: string, busy: number, alt: string | null, lang: Lang) => busy
+    ? L(lang,
+      `Not everyone is free ${day} — I keep who and why to myself.${alt ? ` ${alt} works for the whole table.` : ""}`,
+      `${day} không phải ai cũng rảnh — ai và vì sao thì mình giữ kín.${alt ? ` ${alt} thì cả nhóm đều được.` : ""}`)
+    : L(lang, `As far as I know, everyone is free ${day}.`, `Theo mình biết thì ${day} mọi người đều rảnh.`),
   help: (lang: Lang) => L(lang,
     "In the group: “where should we eat Friday?”, “add place: name, food, ~price, area”, feedback like “Phở Hòa was great”, “what do you remember about the group?”.\nIn DM: tell me what you can't eat, your budget, your area; “what do you know about me?”; “forget …”; “why did you skip …?”.",
     "Trong nhóm: “thứ 6 ăn gì?”, “thêm quán: tên, món, ~giá, khu vực”, nhận xét kiểu “Phở Hòa ngon”, “nhóm mình nhớ gì?”.\nNhắn riêng: món không ăn được, ngân sách, khu vực; “bạn biết gì về mình?”; “quên …”; “sao không chọn …?”."),

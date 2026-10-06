@@ -66,6 +66,32 @@ const members = Object.fromEntries(PERSONAS.map((p) => {
   return [p.key, m];
 }));
 
+if (process.argv.includes("--topup")) {
+  // Re-submit failed writes and add any fact the current extractor finds that the
+  // ledger does not already hold — without replaying (and duplicating) the chats.
+  const { extractByRules } = await import("../src/core/extract");
+  const retried = memory.retryFailed();
+  let added = 0;
+  for (const p of PERSONAS) {
+    const m = members[p.key];
+    const have = new Set(ledger.memoriesOf("member", m.id).filter((r) => r.status !== "failed" || r.pending_text).map((r) => r.key));
+    for (const line of p.dm) {
+      for (const f of extractByRules(line, "dm")) {
+        if (have.has(f.key)) continue;
+        have.add(f.key);
+        await memory.writeFact({ type: "member", id: m.id }, f);
+        added++;
+      }
+    }
+  }
+  console.log(`retrying ${retried} failed writes, adding ${added} missing facts`);
+  const r = await memory.drain(600_000);
+  const stats = ledger.stats() as any;
+  console.log(`drained: ${r.done} · on Walrus: ${stats.memoriesOnWalrus} · failed: ${stats.memoriesFailed}`);
+  for (const row of stats.perMember) console.log(`  ${row.name.padEnd(6)} ${row.stored} memories${row.demo ? " (demo persona)" : ""}`);
+  process.exit(0);
+}
+
 const say = async (key: string, text: string, room: "dm" | "group") => {
   const m = members[key];
   const out = await engine.handle({ channel: "seed", roomType: room, roomId: room === "dm" ? m.id : group.id, memberId: m.id, text, addressed: true });

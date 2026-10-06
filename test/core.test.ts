@@ -84,6 +84,12 @@ describe("extraction", () => {
     expect(extractByRules("I'm vegan but you can tell the group", "dm")[0].tier).toBe("shared");
     expect(extractByRules("I'm allergic to peanuts, don't use this", "dm")[0].tier).toBe("private");
   });
+  test("questions never become facts", () => {
+    expect(extractByRules("Which of us is vegetarian?", "group")).toEqual([]);
+    expect(extractByRules("Is anyone allergic to peanuts", "group")).toEqual([]);
+    expect(extractByRules("Bảo có ăn chay không?", "group")).toEqual([]);
+    expect(extractByRules("I'm vegetarian", "group").length).toBe(1);
+  });
   test("retraction", () => {
     const f = extractByRules("I'm no longer allergic to peanuts", "dm")[0];
     expect(f.key).toBe("allergy:peanut");

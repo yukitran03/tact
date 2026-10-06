@@ -113,7 +113,9 @@ export class MemoryService {
             const statuses = await this.backend.statusMany(pending.map((r) => r.job_id!)).catch(() => new Map());
             for (const row of pending) {
               const st = statuses.get(row.job_id!);
-              const age = Date.now() - Date.parse(row.created_at);
+              // Age since submission (updated_at moves when the job id is recorded), not since creation:
+              // a retried row was created long ago but submitted just now.
+              const age = Date.now() - Date.parse(row.updated_at);
               if (st?.status === "done" && st.blobId) {
                 this.ledger.updateMemory(row.id, { status: "done", blob_id: st.blobId, pending_text: null });
                 this.invalidate(row.namespace);

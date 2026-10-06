@@ -1,6 +1,6 @@
 import type { Fact, Group, Inbound, Member, OwnerRef, Outbound, StoredFact, Tier } from "./types";
 import { extractByRules, extractVenue, extractVerdict } from "./extract";
-import { fold, isVietnamese } from "./lexicon";
+import { cuisinesIn, fold, isVietnamese, mentionsName, weekdaysIn } from "./lexicon";
 import { plan, parsePlanRequest, planWithoutMemory, venuesFrom, violations, type Attendee, type PlanResult } from "./planner";
 import { sensitiveTerms, scanForLeaks, shareable } from "./firewall";
 import { confirmFacts, dayName, listFacts, polishGroupReply, publicContext, T, tierLabel, type Lang } from "./compose";
@@ -28,8 +28,18 @@ const RE = {
   why: /(why (not|didn'?t|did you skip|skip)|sao (khong|ko) (chon|di)|tai sao (khong|ko)|why .* (skip|not))/,
   forget: /^\s*(\/forget|forget|quen|xoa|delete)\b\s*(.*)$/,
   tierChange: /^\s*(?:\/(share|discreet|private)|make|doi)\s+(\d+|.+?)\s*(?:(?:->|thanh|to)?\s*(shared|discreet|private|cong khai|kin dao|rieng tu))?\s*$/,
-  aboutMember: /(allergic|allergy|di ung|eat|an duoc|budget|ngan sach|thich|like|live|o dau|know about|biet gi ve|diet|an chay|vegetarian)/,
+  aboutMember: /(allergic|allergy|di ung|eat|an duoc|budget|ngan sach|thich|like|live|o dau|know about|biet gi ve|diet|an chay|vegetarian|everything|tell me about|ke ve)/,
+  constraintAsk: /(allerg|di ung|diet|dietary|restriction|vegetarian|vegan|halal|kosher|an chay|an kieng|kieng|budget|ngan sach|can.t eat|khong an duoc|who (is|are) (on|vegetarian|vegan))/,
+  availabilityAsk: /(who can.t (come|make it|do)|who is busy|who'?s busy|ai (ban|khong (di|ranh|tham gia))|ai vang|can.t come|khong di duoc)/,
 };
+
+/** A plan request without the usual words: "korean bbq saturday?", "japanese food friday?". */
+function looksLikePlan(text: string): boolean {
+  if (RE.plan.test(fold(text))) return true;
+  const hasWhen = weekdaysIn(text).length > 0 || /\b(tonight|tomorrow|toi nay|ngay mai|this weekend|cuoi tuan)\b/.test(fold(text));
+  const hasWhat = cuisinesIn(text).length > 0 || /\b(eat|food|an|quan|nha hang|restaurant)\b/.test(fold(text));
+  return (hasWhen && (hasWhat || /\?/.test(text))) || (hasWhat && /\?/.test(text) && cuisinesIn(text).length > 0);
+}
 
 const TIER_WORD: Record<string, Tier> = {
   shared: "shared", "cong khai": "shared", share: "shared",
@@ -211,9 +221,17 @@ export class Engine {
     if (has(cleaned, RE.why)) return { intent: "why-group", out: [room(T.whyNot(lang))] };
 
     const members = this.ledger.groupMembers(group.id);
-    const named = members.find((m) => m.id !== member.id && m.displayName.length >= 2 && fold(cleaned).includes(fold(m.displayName)));
-    if (named && has(cleaned, RE.aboutMember) && /\?|gi|what|does|is|co |khong/.test(fold(cleaned))) {
+    const named = members.find((m) => m.id !== member.id && mentionsName(cleaned, m.displayName));
+    if (named && has(cleaned, RE.aboutMember)) {
       return this.answerAboutMember(group, named, lang);
+    }
+
+    if (has(cleaned, RE.availabilityAsk) || (weekdaysIn(cleaned).length && /(busy|free|ranh|ban|bận|can.t)/i.test(cleaned) && /\?|who|ai/i.test(cleaned))) {
+      return this.availabilityForGroup(group, cleaned, lang);
+    }
+
+    if (has(cleaned, RE.constraintAsk) && !looksLikePlan(cleaned) && extractByRules(cleaned, "group").length === 0) {
+      return { intent: "constraints-private", out: [room(T.keepsPrivate(lang))] };
     }
 
     if (has(cleaned, RE.memoryGroup) && addressed) {
@@ -229,7 +247,7 @@ export class Engine {
       return { intent: "list-group-memory", used: g.facts.length, out: [room(lines.join("\n"), { type: "group-memory" })] };
     }
 
-    if (has(cleaned, RE.plan)) return this.planForGroup(member, group, cleaned, lang);
+    if (looksLikePlan(cleaned)) return this.planForGroup(member, group, cleaned, lang);
 
     const g = await this.memory.readFacts(groupRef);
     const verdict = extractVerdict(cleaned, venuesFrom(g.facts).map((v) => ({ slug: v.slug, name: v.name })), member.displayName);
@@ -263,6 +281,19 @@ export class Engine {
     };
   }
 
+  /** "Who can't come Thursday?" — answered with a count and a better day, never with names. */
+  private async availabilityForGroup(group: Group, text: string, lang: Lang) {
+    const members = this.ledger.groupMembers(group.id);
+    const reads = await this.memory.readMany(members.map((m) => ({ type: "member" as const, id: m.id })));
+    const attendees: Attendee[] = members.map((m) => ({ memberId: m.id, name: m.displayName, facts: reads.get(`member:${m.id}`)!.facts, readOk: !reads.get(`member:${m.id}`)!.failed }));
+    const day = weekdaysIn(text)[0];
+    if (!day) return { intent: "availability", out: [{ roomType: "group" as const, roomId: group.id, text: T.keepsPrivate(lang) }] };
+    const r = plan({ text, day }, attendees, []);
+    const busy = r.dayConflict?.busyMemberIds.length ?? 0;
+    const alt = r.dayConflict?.alternativeDay ? dayName(r.dayConflict.alternativeDay, lang) : null;
+    return { intent: "availability", withheld: busy, out: [{ roomType: "group" as const, roomId: group.id, text: T.availability(dayName(day, lang), busy, alt, lang) }] };
+  }
+
   /** The core loop: read everyone's memory from Walrus, plan deterministically, speak only shared facts. */
   async planForGroup(member: Member, group: Group, text: string, lang: Lang) {
     const room = (t: string, meta?: Record<string, unknown>): Outbound => ({ roomType: "group", roomId: group.id, text: t, meta });
@@ -293,7 +324,7 @@ export class Engine {
 
     const result = plan(req, attendees, groupRead.facts, { lastVenueSlug: lastSlug });
     const factsByMember = new Map(attendees.map((a) => [a.memberId, a.facts]));
-    const terms = sensitiveTerms(factsByMember);
+    const terms = sensitiveTerms(factsByMember, new Map(attendees.map((a) => [a.memberId, a.name])));
     const ctx = publicContext(result, lang);
     const polished = await polishGroupReply(this.llm, ctx, terms, this.opts.polishBudgetMs);
     const finalHits = scanForLeaks(polished.text, terms, [ctx.choice?.name ?? "", ctx.choice?.area ?? "", ctx.choice?.price ?? "", ...ctx.alternatives.map((a) => a.name)]);

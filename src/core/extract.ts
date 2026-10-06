@@ -1,6 +1,6 @@
 import type { Fact, Kind, Tier } from "./types";
 import {
-  areaIn, cuisinesIn, DAY_LABEL, dietIn, fold, foodGroupsIn, formatMoney, isVietnamese, moneyIn, weekdaysIn,
+  areaIn, cuisineLabel, cuisinesIn, DAY_LABEL, dietIn, fold, foodGroupsIn, formatMoney, isVietnamese, moneyIn, weekdaysIn,
 } from "./lexicon";
 
 export type Said = "dm" | "group";
@@ -45,8 +45,17 @@ function fact(kind: Kind, key: string, text: string, attrs: Record<string, strin
  * model, so allergies, diets and budgets are caught even if the LLM is down or
  * small; the model only adds what these rules miss.
  */
+/** Questions ask about facts; they never state them ("Which of us is vegetarian?"). */
+export function isQuestion(raw: string): boolean {
+  const t = fold(raw.trim());
+  if (/\?\s*$/.test(raw.trim())) return true;
+  return /^(who|which|what|whats|what's|is anyone|does anyone|do you|are you|is there|ai |cai gi|co ai|ban co|sao |tai sao|why |how )/.test(t) ||
+    /\b(khong|ko|chua) ?\??$/.test(t) && /\b(co|da)\b/.test(t);
+}
+
 export function extractByRules(raw: string, said: Said, now = new Date().toISOString()): Fact[] {
   const text = raw.trim();
+  if (isQuestion(text)) return [];
   const t = fold(text);
   const out: Fact[] = [];
   const cue = tierCue(text);
@@ -89,7 +98,7 @@ export function extractByRules(raw: string, said: Said, now = new Date().toISOSt
   const dislikeScope = dm ? nfc.slice(dm.index + dm[1].length, dm.index + dm[0].length) : "";
   if (dm) {
     for (const c of cuisinesIn(dislikeScope)) {
-      out.push(fact("dislike", `dislike:${c}`, `Doesn't enjoy ${c} food.`, { cuisine: c }, said, text, now));
+      out.push(fact("dislike", `dislike:${c}`, `Doesn't enjoy ${cuisineLabel(c)}.`, { cuisine: c }, said, text, now));
     }
     for (const g of foodGroupsIn(dislikeScope)) {
       if (out.some((f) => f.attrs.avoid === g || f.attrs.food === g)) continue;
@@ -101,7 +110,7 @@ export function extractByRules(raw: string, said: Said, now = new Date().toISOSt
   if (lm && !/(khong thich)/.test(lm[0])) {
     const scope = nfc.slice(lm.index + lm[1].length, lm.index + lm[0].length);
     for (const c of cuisinesIn(scope)) {
-      out.push(fact("like", `like:${c}`, `Loves ${c} food.`, { cuisine: c }, said, text, now));
+      out.push(fact("like", `like:${c}`, `Loves ${cuisineLabel(c)}.`, { cuisine: c }, said, text, now));
     }
     for (const g of foodGroupsIn(scope)) {
       if (out.some((f) => f.attrs.avoid === g)) continue;

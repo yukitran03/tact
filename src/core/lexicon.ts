@@ -190,7 +190,7 @@ export const CUISINES: Record<string, string[]> = {
   japanese: ["japanese", "sushi", "ramen", "nhat", "do nhat"],
   korean: ["korean", "kbbq", "han quoc", "do han"],
   thai: ["thai", "thai lan", "do thai"],
-  chinese: ["chinese", "dim sum", "hoa", "do hoa"],
+  chinese: ["chinese", "dim sum", "do hoa", "mon hoa"],
   indian: ["indian", "curry", "an do"],
   western: ["western", "burger", "pizza", "pasta", "steakhouse", "au"],
   hotpot: ["hotpot", "hot pot", "lau"],
@@ -220,4 +220,20 @@ export function isVietnamese(text: string): boolean {
   const marks = (text.match(/[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹáàãéèíìóòõúùý]/gi) ?? []).length;
   if (en >= 2 && en > vi) return false;
   return vi >= 2 || (marks >= 2 && vi >= 1) || (marks >= 3 && en === 0);
+}
+
+/** True when `name` appears as a whole word ("An" is not inside "anyone" or "Korean"). */
+export function mentionsName(text: string, name: string): boolean {
+  const n = fold(name).trim();
+  if (!n) return false;
+  return new RegExp(`(^|[^a-z0-9])${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^a-z0-9])`).test(fold(text));
+}
+
+const CUISINE_LABEL: Record<string, string> = {
+  vietnamese: "Vietnamese food", japanese: "Japanese food", korean: "Korean food", thai: "Thai food",
+  chinese: "Chinese food", indian: "Indian food", western: "Western food", hotpot: "hotpot", bbq: "BBQ",
+  vegetarian: "vegetarian places", seafood: "seafood", cafe: "cafés",
+};
+export function cuisineLabel(c: string): string {
+  return CUISINE_LABEL[c] ?? c;
 }
