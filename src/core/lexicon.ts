@@ -47,10 +47,18 @@ function wordHit(haystack: string, needle: string): boolean {
   return re.test(haystack);
 }
 
+/** Single Vietnamese syllables that are only unambiguous with their diacritics ("cá" fish vs "cả" all). */
+const RAW_SYLLABLES: [RegExp, string][] = [
+  [/(^|[\s,.;:!?(])cá(?=$|[\s,.;:!?)])/iu, "fish"],
+  [/(^|[\s,.;:!?(])gà(?=$|[\s,.;:!?)])/iu, "chicken"],
+  [/(^|[\s,.;:!?(])bò(?=$|[\s,.;:!?)])/iu, "beef"],
+];
+
 /** Every ingredient group mentioned in a piece of text. */
 export function foodGroupsIn(text: string): string[] {
   const t = fold(text);
   const found = new Set<string>();
+  for (const [re, g] of RAW_SYLLABLES) if (re.test(text)) found.add(g);
   for (const [alias, groups] of Object.entries(ALIASES)) {
     if (wordHit(t, alias)) groups.forEach((g) => found.add(g));
   }
@@ -188,7 +196,7 @@ export const CUISINES: Record<string, string[]> = {
   hotpot: ["hotpot", "hot pot", "lau"],
   bbq: ["bbq", "barbecue", "nuong", "do nuong"],
   vegetarian: ["vegetarian restaurant", "quan chay", "nha hang chay", "com chay"],
-  seafood: ["seafood restaurant", "quan oc", "oc", "hai san"],
+  seafood: ["seafood", "quan oc", "oc", "hai san"],
   cafe: ["cafe", "coffee", "ca phe"],
 };
 
@@ -201,9 +209,15 @@ export function cuisinesIn(text: string): string[] {
   return out;
 }
 
+/**
+ * Language of a message, by counting function words rather than spotting one
+ * diacritic: "add place: Ốc Đào Corner" is English with a Vietnamese name in it.
+ */
 export function isVietnamese(text: string): boolean {
-  if (/[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(text)) return true;
   const t = fold(text);
-  return /\b(minh|tui|toi|ban|quan|an gi|di an|khong|nhe|nha|thich|ghet|cho|voi|gio)\b/.test(t) &&
-    !/\b(the|and|what|where|should|we|i'm|my)\b/.test(t);
+  const en = (t.match(/\b(the|and|what|where|should|we|i|i'm|my|is|are|you|to|for|place|add|why|did|skip|dinner|lunch|eat|how|about|was|great|with|in|at|on|do|does|can't|don't|love|like|budget|live|work)\b/g) ?? []).length;
+  const vi = (t.match(/\b(minh|tui|ban|quan|an|gi|di|khong|nhe|nha|thich|ghet|cho|voi|gio|nay|mai|la|va|cua|duoc|nhom|moi|nguoi|them|sao|chon|biet|nho|o|toi|dau|nao)\b/g) ?? []).length;
+  const marks = (text.match(/[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹáàãéèíìóòõúùý]/gi) ?? []).length;
+  if (en >= 2 && en > vi) return false;
+  return vi >= 2 || (marks >= 2 && vi >= 1) || (marks >= 3 && en === 0);
 }

@@ -24,7 +24,7 @@ type Listener = (row: MemoryRow) => void;
 export class MemoryService {
   private cache = new Map<string, { at: number; result: ReadResult }>();
   private listeners = new Set<Listener>();
-  private polling = new Set<string>();
+  private polling = false;
 
   constructor(
     readonly backend: MemoryBackend,
@@ -63,16 +63,26 @@ export class MemoryService {
     this.ledger.insertMemory(row);
     this.invalidate(namespace);
     this.emit(row.id);
-    try {
-      const { jobId } = await this.backend.remember(text, namespace, `tact-${hash.slice(0, 40)}`);
-      this.ledger.updateMemory(row.id, { job_id: jobId, status: "pending" });
-      this.emit(row.id);
-      void this.poll(row.id, jobId);
-    } catch (err) {
-      this.ledger.updateMemory(row.id, { status: "failed", error: String((err as Error).message).slice(0, 300) });
-      this.emit(row.id);
-    }
+    // The reply never waits on the relayer: the fact is usable at once from the
+    // write-ahead buffer, and the submit + blob confirmation run in the background.
+    void this.submit(row.id, text, namespace);
     return this.rowById(row.id)!;
+  }
+
+  private async submit(rowId: string, text: string, namespace: string): Promise<void> {
+    try {
+      // The idempotency key names this one write, so a retry after a timeout
+      // cannot mint a second blob. It must not be derived from the fact alone:
+      // the relayer scopes keys per account, and two people with the same
+      // allergy write identical facts into different namespaces.
+      const { jobId } = await this.backend.remember(text, namespace, `tact-${rowId}`);
+      this.ledger.updateMemory(rowId, { job_id: jobId, status: "pending" });
+      this.emit(rowId);
+      this.ensurePoller();
+    } catch (err) {
+      this.ledger.updateMemory(rowId, { status: "failed", error: String((err as Error).message).slice(0, 300) });
+      this.emit(rowId);
+    }
   }
 
   private rowById(id: string): MemoryRow | null {
@@ -84,39 +94,61 @@ export class MemoryService {
     if (row) for (const fn of this.listeners) fn(row);
   }
 
-  private async poll(rowId: string, jobId: string): Promise<void> {
-    if (this.polling.has(rowId)) return;
-    this.polling.add(rowId);
-    const started = Date.now();
-    const every = this.opts.pollMs ?? 2500;
-    try {
-      while (Date.now() - started < 180_000) {
-        const s = await this.backend.status(jobId).catch(() => ({ status: "pending" as const }));
-        if (s.status === "done" && "blobId" in s && s.blobId) {
-          this.ledger.updateMemory(rowId, { status: "done", blob_id: s.blobId, pending_text: null });
-          const row = this.rowById(rowId);
-          if (row) this.invalidate(row.namespace);
-          this.emit(rowId);
-          return;
+  /**
+   * One loop polls every pending job with a single bulk-status request, instead
+   * of one poller per write: status calls count against the same per-key rate
+   * limit as writes, and ten parallel pollers alone would exceed it.
+   */
+  private ensurePoller(): void {
+    if (this.polling) return;
+    this.polling = true;
+    const every = this.opts.pollMs ?? 3000;
+    const loop = async () => {
+      try {
+        for (;;) {
+          const inflight = this.ledger.memoriesInFlight();
+          if (!inflight.length) return;
+          const pending = inflight.filter((r) => r.job_id && r.status === "pending");
+          if (pending.length) {
+            const statuses = await this.backend.statusMany(pending.map((r) => r.job_id!)).catch(() => new Map());
+            for (const row of pending) {
+              const st = statuses.get(row.job_id!);
+              const age = Date.now() - Date.parse(row.created_at);
+              if (st?.status === "done" && st.blobId) {
+                this.ledger.updateMemory(row.id, { status: "done", blob_id: st.blobId, pending_text: null });
+                this.invalidate(row.namespace);
+                this.emit(row.id);
+              } else if (st?.status === "failed" || st?.status === "not_found" || age > 300_000) {
+                this.ledger.updateMemory(row.id, { status: "failed", error: st?.error || st?.status || "timed out waiting for Walrus" });
+                this.emit(row.id);
+              }
+            }
+          }
+          await new Promise((r) => setTimeout(r, every));
         }
-        if (s.status === "failed" || s.status === "not_found") {
-          this.ledger.updateMemory(rowId, { status: "failed", error: ("error" in s && s.error) || s.status });
-          this.emit(rowId);
-          return;
-        }
-        await new Promise((r) => setTimeout(r, every));
+      } finally {
+        this.polling = false;
       }
-      this.ledger.updateMemory(rowId, { status: "failed", error: "timed out waiting for Walrus" });
-      this.emit(rowId);
-    } finally {
-      this.polling.delete(rowId);
-    }
+    };
+    void loop();
   }
 
   /** Re-attach pollers after a restart, so writes in flight still get their blob ids. */
   resumeInFlight(): number {
     const rows = this.ledger.memoriesInFlight();
-    for (const r of rows) if (r.job_id) void this.poll(r.id, r.job_id);
+    // A row that never reached the relayer (the process died while it was queued) is marked failed, not guessed.
+    for (const r of rows) if (!r.job_id) this.ledger.updateMemory(r.id, { status: "failed", error: "process restarted before submit" });
+    if (rows.some((r) => r.job_id)) this.ensurePoller();
+    return rows.length;
+  }
+
+  /** Re-submits writes that failed but still hold their text (rate limits, relayer hiccups). */
+  retryFailed(): number {
+    const rows = this.ledger.db.query("SELECT * FROM memories WHERE status = 'failed' AND pending_text IS NOT NULL").all() as MemoryRow[];
+    for (const r of rows) {
+      this.ledger.updateMemory(r.id, { status: "queued", error: null, job_id: null });
+      void this.submit(r.id, r.pending_text!, r.namespace);
+    }
     return rows.length;
   }
 

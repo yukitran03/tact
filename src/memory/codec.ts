@@ -82,5 +82,5 @@ export function resolveFacts<T extends Fact & { createdAt?: string }>(facts: T[]
     const prev = latest.get(f.key);
     if (!prev || stamp(f) >= stamp(prev)) latest.set(f.key, f);
   }
-  return [...latest.values()].filter((f) => !f.retract).sort((a, b) => stamp(b) - stamp(a));
+  return [...latest.values()].filter((f) => !f.retract).sort((a, b) => stamp(b) - stamp(a) || a.key.localeCompare(b.key));
 }

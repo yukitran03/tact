@@ -81,10 +81,12 @@ export function extractByRules(raw: string, said: Said, now = new Date().toISOSt
   }
 
   // Likes and dislikes (soft preferences).
-  const dislikeRe = /(don.t like|do not like|dislike|hate|not a fan of|khong thich|ghet|so (an )?)([^.!?\n]*)/;
+  const dislikeRe = /(don.t like|do not like|dislike|hate|not a fan of|khong thich|ghet)([^.!?\n]*)/;
   const likeRe = /(i love|i like|i really like|big fan of|favou?rite|crave|minh thich|toi thich|thich an|thich|ghien)([^.!?\n]*)/;
   const dm = dislikeRe.exec(t);
-  const dislikeScope = dm?.[2] ?? "";
+  // fold() keeps NFC length, so the same offsets slice the original text, diacritics intact.
+  const nfc = text.normalize("NFC");
+  const dislikeScope = dm ? nfc.slice(dm.index + dm[1].length, dm.index + dm[0].length) : "";
   if (dm) {
     for (const c of cuisinesIn(dislikeScope)) {
       out.push(fact("dislike", `dislike:${c}`, `Doesn't enjoy ${c} food.`, { cuisine: c }, said, text, now));
@@ -94,9 +96,10 @@ export function extractByRules(raw: string, said: Said, now = new Date().toISOSt
       out.push(fact("dislike", `dislike:${g}`, g === "spicy" ? "Doesn't like spicy food." : `Doesn't like ${g}.`, { food: g }, said, text, now));
     }
   }
-  const lm = likeRe.exec(dm ? t.replace(dm[0], " ") : t);
+  const likeHay = dm ? t.slice(0, dm.index) + " ".repeat(dm[0].length) + t.slice(dm.index + dm[0].length) : t;
+  const lm = likeRe.exec(likeHay);
   if (lm && !/(khong thich)/.test(lm[0])) {
-    const scope = lm[2];
+    const scope = nfc.slice(lm.index + lm[1].length, lm.index + lm[0].length);
     for (const c of cuisinesIn(scope)) {
       out.push(fact("like", `like:${c}`, `Loves ${c} food.`, { cuisine: c }, said, text, now));
     }

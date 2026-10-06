@@ -108,7 +108,8 @@ describe("engine", () => {
   test("memory off: the bot has to ask, and its pick breaks a constraint", async () => {
     await seed(s);
     s.engine.setMode(s.group.id, "off");
-    const out = await s.say(s.chi.id, "dinner friday?");
+    // A memory-less bot takes the request at face value: seafood means Ốc Đào.
+    const out = await s.say(s.chi.id, "seafood dinner friday?");
     expect(out[0].meta?.mode).toBe("off");
     expect(Number(out[0].meta?.violations)).toBeGreaterThan(0);
     expect(out[0].text).toContain("allergies");
@@ -130,5 +131,14 @@ describe("engine", () => {
     const facts = await memory2.readFacts({ type: "member", id: s.bao.id });
     expect(facts.facts.map((f) => f.key)).toContain("allergy:shellfish");
     expect(facts.facts.every((f) => f.origin === "walrus" && f.blobId)).toBe(true);
+  });
+
+  test("two people with the same allergy both get their own blob (no idempotency collision)", async () => {
+    await s.say(s.an.id, "I'm allergic to peanuts", "dm");
+    await s.say(s.chi.id, "I'm allergic to peanuts", "dm");
+    await s.memory.drain(5000);
+    const rows = [...s.ledger.memoriesOf("member", s.an.id), ...s.ledger.memoriesOf("member", s.chi.id)];
+    expect(rows.length).toBe(2);
+    expect(rows.every((r) => r.status === "done" && r.blob_id)).toBe(true);
   });
 });

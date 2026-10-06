@@ -23,6 +23,8 @@ export interface MemoryBackend {
   readonly kind: "walrus" | "mock";
   remember(text: string, namespace: string, idempotencyKey?: string): Promise<{ jobId: string }>;
   status(jobId: string): Promise<{ status: JobStatus; blobId?: string; error?: string }>;
+  /** One request for many jobs; status polls count against the relayer's rate limit too. */
+  statusMany(jobIds: string[]): Promise<Map<string, { status: JobStatus; blobId?: string; error?: string }>>;
   recall(query: string, namespace: string, limit: number): Promise<RecallOutcome>;
   health(): Promise<{ ok: boolean; detail: string }>;
   identity(): Promise<{ accountId: string; agentId: string; serverUrl: string }>;
@@ -89,6 +91,19 @@ export class WalrusBackend implements MemoryBackend {
       if (retryAfterMs(err) !== null) return { status: "pending" as JobStatus };
       throw err;
     }
+  }
+
+  async statusMany(jobIds: string[]) {
+    const out = new Map<string, { status: JobStatus; blobId?: string; error?: string }>();
+    for (let i = 0; i < jobIds.length; i += 50) {
+      try {
+        const r = await this.mw.getRememberBulkStatus(jobIds.slice(i, i + 50));
+        for (const it of r.results) out.set(it.job_id, { status: it.status as JobStatus, blobId: it.blob_id, error: it.error });
+      } catch (err) {
+        if (retryAfterMs(err) === null) throw err;
+      }
+    }
+    return out;
   }
 
   async recall(query: string, namespace: string, limit: number): Promise<RecallOutcome> {
@@ -158,7 +173,17 @@ export class MockBackend implements MemoryBackend {
 
   constructor(private readonly opts: { indexLagMs?: number; failRecall?: boolean } = {}) {}
 
-  async remember(text: string, namespace: string): Promise<{ jobId: string }> {
+  private keys = new Map<string, string>();
+
+  async remember(text: string, namespace: string, idempotencyKey?: string): Promise<{ jobId: string }> {
+    // Same rule as the relayer: an idempotency key reused with different content is a 409.
+    if (idempotencyKey) {
+      const prev = this.keys.get(idempotencyKey);
+      if (prev !== undefined && prev !== `${namespace}\n${text}`) {
+        throw Object.assign(new Error("Walrus Memory server error (409): idempotency_key was already used for a request with different content"), { status: 409 });
+      }
+      this.keys.set(idempotencyKey, `${namespace}\n${text}`);
+    }
     const jobId = `mock-job-${++this.seq}`;
     const blobId = `mockblob${String(this.seq).padStart(6, "0")}${Math.random().toString(36).slice(2, 10)}`;
     this.jobs.set(jobId, { status: "pending", blobId, namespace, text });
@@ -176,6 +201,12 @@ export class MockBackend implements MemoryBackend {
   async status(jobId: string) {
     const j = this.jobs.get(jobId);
     return j ? { status: j.status, blobId: j.status === "done" ? j.blobId : undefined } : { status: "not_found" as JobStatus };
+  }
+
+  async statusMany(jobIds: string[]) {
+    const out = new Map<string, { status: JobStatus; blobId?: string; error?: string }>();
+    for (const id of jobIds) out.set(id, await this.status(id));
+    return out;
   }
 
   async recall(query: string, namespace: string, limit: number): Promise<RecallOutcome> {
