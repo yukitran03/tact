@@ -14,6 +14,7 @@
     "build:web": "bun scripts/build-web.ts",
     "telegram": "bun src/channels/telegram.ts",
     "smoke": "bun scripts/smoke.ts",
+    "diagnose": "bun scripts/diagnose.ts",
     "seed": "bun scripts/seed-personas.ts",
     "eval": "bun scripts/eval.ts",
     "evidence": "bun scripts/evidence.ts",

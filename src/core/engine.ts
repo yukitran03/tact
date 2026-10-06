@@ -155,19 +155,27 @@ export class Engine {
 
   private async explainForOwner(member: Member, text: string, lang: Lang) {
     const room = (t: string): Outbound => ({ roomType: "dm", roomId: member.id, text: t });
-    const groups = this.ledger.groupsOf(member.id);
-    const plans = groups.map((g) => this.ledger.lastPlan(g.id)).filter(Boolean).sort((a, b) => b!.created_at.localeCompare(a!.created_at));
-    const last = plans[0];
-    if (!last) return { intent: "why-none", out: [room(lang === "vi" ? "Mình chưa lên kế hoạch nào có bạn tham gia." : "I haven't planned anything with you in it yet.")] };
-    const decision = JSON.parse(last.decision) as StoredPlan;
+    const groupIds = this.ledger.groupsOf(member.id).map((g) => g.id);
+    if (!groupIds.length) return { intent: "why-none", out: [room(lang === "vi" ? "Mình chưa lên kế hoạch nào có bạn tham gia." : "I haven't planned anything with you in it yet.")] };
+    const recent = this.ledger.db.query(`SELECT * FROM plans WHERE group_id IN (${groupIds.map(() => "?").join(",")}) ORDER BY created_at DESC LIMIT 10`).all(...groupIds) as { decision: string }[];
+    if (!recent.length) return { intent: "why-none", out: [room(lang === "vi" ? "Mình chưa lên kế hoạch nào có bạn tham gia." : "I haven't planned anything with you in it yet.")] };
     const t = fold(text);
-    const mine = decision.influences.filter((i) => i.memberId === member.id && (!i.venue || t.includes(fold(i.venueName ?? "").slice(0, 5)) || !decision.ruledOut.some((r) => t.includes(fold(r.name).slice(0, 5)))));
+    const decisions = recent.map((r) => JSON.parse(r.decision) as StoredPlan);
+    // Prefer the most recent plan that involved the place the question names.
+    const named = (d: StoredPlan) => [...d.ruledOut, ...(d.choice ? [d.choice] : []), ...d.alternatives].find((v) => t.includes(fold(v.name)));
+    const decision = decisions.find((d) => named(d)) ?? decisions[0];
+    const place = named(decision);
+    const mine = decision.influences.filter((i) => i.memberId === member.id && (!place || !i.venue || i.venue === place.slug));
+    const lines0 = [...new Set(mine.map((i) => i.you ?? i.detail))];
     if (!mine.length) {
       return { intent: "why-not-you", out: [room(lang === "vi"
         ? "Lần đó không có điều gì của bạn làm thay đổi lựa chọn. Lý do của người khác thì mình giữ kín cho họ."
         : "Nothing you told me changed that plan. Other people's reasons stay with them.")] };
     }
-    const lines = mine.map((i) => `• ${i.detail}${i.blobId ? ` (memory \`${i.blobId.slice(0, 8)}\`)` : ""} — ${i.tier === "shared" ? (lang === "vi" ? "công khai" : "shared") : (lang === "vi" ? "nhóm không được biết" : "the group was not told")}`);
+    const lines = lines0.map((line) => {
+      const i = mine.find((x) => (x.you ?? x.detail) === line)!;
+      return `• ${line}${i.blobId ? ` (memory \`${i.blobId.slice(0, 8)}\`)` : ""} — ${i.tier === "shared" ? (lang === "vi" ? "công khai" : "shared") : (lang === "vi" ? "nhóm không được biết" : "the group was not told")}`;
+    });
     return { intent: "why", used: mine.length, out: [room((lang === "vi" ? "Đây là phần của bạn trong quyết định đó:\n" : "Here's how your memories shaped that plan:\n") + lines.join("\n"))] };
   }
 
@@ -223,6 +231,8 @@ export class Engine {
     const members = this.ledger.groupMembers(group.id);
     const named = members.find((m) => m.id !== member.id && mentionsName(cleaned, m.displayName));
     if (named && has(cleaned, RE.aboutMember)) {
+      // A question about someone's allergies, diet or budget gets a refusal, not a list of their likes.
+      if (has(cleaned, RE.constraintAsk)) return { intent: "about-refused", out: [room(T.refuseAbout(named.displayName, lang))] };
       return this.answerAboutMember(group, named, lang);
     }
 
@@ -345,7 +355,8 @@ export class Engine {
       });
       if (inf.effect !== "boosted") {
         const list = notes.get(inf.memberId) ?? [];
-        list.push(inf.detail);
+        const line = inf.you ?? inf.detail;
+        if (!list.includes(line)) list.push(line);
         notes.set(inf.memberId, list);
       }
     }

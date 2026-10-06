@@ -81,9 +81,11 @@ async function loadTable(): Promise<{ attendees: Attendee[]; groupFacts: StoredF
     const g = app.ledger.db.query("SELECT id FROM groups WHERE demo = 1 ORDER BY created_at LIMIT 1").get() as { id: string } | null;
     if (!g) throw new Error("no demo table — run `bun run seed` first");
     const members = app.ledger.groupMembers(g.id);
+    if ("warm" in app.backend) await (app.backend as { warm(): Promise<number> }).warm();
     const t0 = performance.now();
     const reads = await app.memory.readMany([{ type: "group", id: g.id }, ...members.map((m) => ({ type: "member" as const, id: m.id }))], { fresh: true });
     console.log(`read ${members.length + 1} namespaces from Walrus in ${Math.round(performance.now() - t0)} ms`);
+    for (const [k, r] of reads) if (r.failed) throw new Error(`could not read ${k} from Walrus: ${r.error}`);
     const attendees = members.map((m) => {
       const r = reads.get(`member:${m.id}`)!;
       return { memberId: m.id, name: m.displayName, facts: r.facts, readOk: !r.failed };

@@ -427,7 +427,7 @@ function ReceiptPanel({ planId }: { planId: string | null }) {
         <div class="receipt-row" key={k}>
           <span class={`eff ${i.effect}`}>{i.effect}</span>
           <div style={{ flex: 1 }}>
-            <div>{i.detail}</div>
+            <div>{i.you ?? i.detail}</div>
             <div class="row" style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
               <span class={`chip ${i.tier}`}>{TIER_NAME[i.tier as Tier]}</span>
               {i.blobId ? <a class="chip blob" href={walruscan(i.blobId)} target="_blank" rel="noreferrer">{shortBlob(i.blobId)} ↗</a> : null}
@@ -592,7 +592,7 @@ function Shell({ me, onLogout, health }: { me: Member; onLogout: () => void; hea
             <button class="icon-btn" title={`Theme: ${theme}`} onClick={cycle}><Icon.sun /></button>
             <button class="btn ghost sm" onClick={onLogout}>Leave</button>
           </div>
-          <div class="status-line"><span class={`dot ${health?.memory.ok ? "live" : "warn"}`} /><span>{health?.memory.mode === "walrus" ? "Walrus Memory · mainnet" : "Mock memory"}</span></div>
+          <div class="status-line"><span class={`dot ${!health ? "off" : health.memory.ok ? "live" : "warn"}`} /><span>{!health ? "Connecting…" : health.memory.mode === "walrus" ? "Walrus Memory · mainnet" : "Mock memory (offline)"}</span>{health?.identity ? <a class="mono faint" href={`https://suiscan.xyz/mainnet/object/${health.identity.accountId}`} target="_blank" rel="noreferrer" title="MemWalAccount on Sui">{health.identity.accountId.slice(0, 6)}…{health.identity.accountId.slice(-4)}</a> : null}</div>
           <div class="status-line"><span class={`dot ${health?.llm.ok ? "live" : "off"}`} /><span class="mono">{health?.llm.label ?? "…"}</span></div>
         </div>
       </aside>
@@ -622,7 +622,7 @@ function Shell({ me, onLogout, health }: { me: Member; onLogout: () => void; hea
           )}
         </header>
         <div class="feed" ref={feedRef}>
-          {messages.length === 0 ? (
+          {!room ? <div class="empty-room"><span class="spin" style={{ color: "var(--accent)" }} /></div> : messages.length === 0 ? (
             <div class="empty-room">
               {room?.type === "dm" ? (<><h3>Tell Tact what matters</h3><p>Allergies, diets, budget, the area you live in, days you're busy. It stays discreet: used for plans, never said in a group.</p></>)
                 : (<><h3>A quiet table</h3><p>Add a few places with “add place: …”, then ask “where should we eat Friday?”. Invite friends with the code above.</p></>)}
@@ -643,7 +643,7 @@ function Shell({ me, onLogout, health }: { me: Member; onLogout: () => void; hea
 
       <aside class="inspector">
         <div class="tabs" role="tablist">
-          <button class={tab === "memory" ? "on" : ""} onClick={() => setTab("memory")}><Icon.db /> My memory</button>
+          <button class={tab === "memory" ? "on" : ""} onClick={() => setTab("memory")}><Icon.db /> Memory</button>
           {group ? <button class={tab === "table" ? "on" : ""} onClick={() => setTab("table")}><Icon.table /> Table</button> : null}
           <button class={tab === "receipt" ? "on" : ""} onClick={() => setTab("receipt")}><Icon.receipt /> Receipt</button>
           <button class={tab === "shield" ? "on" : ""} onClick={() => setTab("shield")}><Icon.shield /> Shield</button>

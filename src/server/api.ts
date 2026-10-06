@@ -91,6 +91,19 @@ export function createApi(app: App) {
       return json({ member: target }, { headers: { "set-cookie": sessionCookie(secret, target.id) } });
     }
 
+    // A shareable link straight into a demo persona's view: /demo?as=<id> or /demo?name=Bảo
+    if (p === "/api/demo/open") {
+      const id = url.searchParams.get("as");
+      const name = url.searchParams.get("name");
+      const row = (id
+        ? ledger.db.query("SELECT id FROM members WHERE demo = 1 AND id = ?").get(id)
+        : name
+          ? ledger.db.query("SELECT id FROM members WHERE demo = 1 AND display_name = ? LIMIT 1").get(name)
+          : ledger.db.query("SELECT id FROM members WHERE demo = 1 ORDER BY created_at LIMIT 1").get()) as { id: string } | null;
+      if (!row) return bad(404, "no such demo persona");
+      return new Response(null, { status: 302, headers: { location: "/", "set-cookie": sessionCookie(secret, row.id) } });
+    }
+
     if (p === "/api/demo/personas") {
       const rows = ledger.db.query("SELECT id, display_name FROM members WHERE demo = 1 ORDER BY created_at").all() as any[];
       const demoGroup = ledger.db.query("SELECT id, name FROM groups WHERE demo = 1 ORDER BY created_at LIMIT 1").get() as any;
@@ -192,8 +205,11 @@ export function createApi(app: App) {
       if (!plan || !ledger.isMember(plan.group_id, member.id)) return bad(404, "not found");
       const d = JSON.parse(plan.decision) as StoredPlan;
       // Everyone sees the public skeleton; each person sees only their own private influences.
-      const mine = d.influences.filter((i) => i.memberId === member.id);
-      const publicInfluences = d.influences.filter((i) => i.tier === "shared" && i.memberId !== member.id);
+      const dedupe = <T extends { detail: string; you?: string }>(xs: T[], key: (x: T) => string) => xs.filter((x, i) => xs.findIndex((y) => key(y) === key(x)) === i);
+      const chosen = d.choice?.slug;
+      const mine = dedupe(d.influences.filter((i) => i.memberId === member.id && (i.effect !== "boosted" || i.venue === chosen)), (x) => x.you ?? x.detail);
+      // Public reasons are the shared memories that shaped the place actually chosen.
+      const publicInfluences = dedupe(d.influences.filter((i) => i.tier === "shared" && i.memberId !== member.id && (!i.venue || i.venue === chosen)), (x) => x.detail);
       return json({
         id: plan.id, request: plan.request, createdAt: plan.created_at, mode: plan.mode,
         choice: d.choice, alternatives: d.alternatives,

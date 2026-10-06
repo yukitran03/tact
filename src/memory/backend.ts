@@ -46,9 +46,12 @@ function retryAfterMs(err: unknown): number | null {
 /**
  * Walrus Memory through the managed mainnet relayer.
  *
- * Writes go through a paced queue: the relayer allows roughly 24 remember()
- * calls a minute per account (MemWal #1116), shared by every user of a bot, so
- * a burst of onboarding answers would otherwise start failing with 429s.
+ * Writes go through a paced queue. The relayer budgets 60 weighted requests a
+ * minute per delegate key (measured: a 429 names `layer: delegate_key`), and a
+ * remember() weighs 5 — so one key gets 12 writes a minute, shared by every
+ * user of the bot, minus the recalls and status polls that weigh 1 each. Ten a
+ * minute leaves room for those; a burst of onboarding answers queues instead
+ * of failing.
  */
 export class WalrusBackend implements MemoryBackend {
   readonly kind = "walrus" as const;
@@ -57,7 +60,7 @@ export class WalrusBackend implements MemoryBackend {
   private lastWrite = 0;
   private readonly minGapMs: number;
 
-  constructor(private readonly creds: MemWalCredentials, private readonly recallTimeoutMs = 14_000, writesPerMinute = 20) {
+  constructor(private readonly creds: MemWalCredentials, private readonly recallTimeoutMs = 14_000, writesPerMinute = Number(process.env.TACT_WRITES_PER_MINUTE ?? 10)) {
     this.mw = MemWal.create({ key: creds.key, accountId: creds.accountId, serverUrl: creds.serverUrl, requestTimeoutMs: 30_000 });
     this.minGapMs = Math.ceil(60_000 / writesPerMinute);
   }
@@ -131,12 +134,24 @@ export class WalrusBackend implements MemoryBackend {
         };
       } catch (err) {
         lastError = String((err as Error)?.message ?? err).slice(0, 200);
+        console.warn(`[walrus] recall ${namespace} attempt ${attempt + 1}: ${lastError}`);
         const backoff = retryAfterMs(err);
         if (backoff === null && !/timed out/.test(lastError)) break;
         await sleep(Math.min(backoff ?? 1000, 4000));
       }
     }
     return { results: [], dropped: 0, ms: Math.round(performance.now() - t0), failed: true, error: lastError };
+  }
+
+  /**
+   * The first signed call builds a SEAL session (key-server round trips), which
+   * can take seconds; doing it once at startup keeps the first plan from paying
+   * for it inside its recall timeout.
+   */
+  async warm(): Promise<number> {
+    const t0 = performance.now();
+    await this.mw.recall({ query: "warm-up", namespace: "tact-warmup", limit: 1 }).catch(() => undefined);
+    return Math.round(performance.now() - t0);
   }
 
   async health() {

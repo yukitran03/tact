@@ -75,7 +75,7 @@ code, .mono { font-family: var(--mono); font-size: 0.86em; }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-2);
-  background: var(--surface); font-weight: 600; font-size: 14px; transition: background .15s, border-color .15s, transform .05s;
+  background: var(--surface); font-weight: 600; font-size: 14px; white-space: nowrap; transition: background .15s, border-color .15s, transform .05s;
 }
 .btn:hover { background: var(--surface-2); border-color: var(--faint); }
 .btn:active { transform: translateY(1px); }
@@ -292,6 +292,12 @@ code, .mono { font-family: var(--mono); font-size: 0.86em; }
   .mobile-tabs button.on { color: var(--accent); background: var(--accent-soft); }
   .room-head { padding: 12px 14px; }
   .msg .stack { max-width: 88%; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-left: -4px; padding-left: 4px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chips button { flex: none; }
+  .composer-hint { display: none; }
+  .room-head { flex-wrap: wrap; }
+  .room-head .sub .chip { display: none; }
 }
 @media (max-width: 520px) {
   .step-row { grid-template-columns: 1fr; }

@@ -1,5 +1,5 @@
 import type { StoredFact, Tier } from "./types";
-import { areaIn, cuisineLabel, cuisinesIn, DIET_EXCLUDES, fold, moneyIn, weekdaysIn, type Diet } from "./lexicon";
+import { areaIn, cuisineLabel, cuisinesIn, DAY_LABEL, DIET_EXCLUDES, fold, formatMoney, moneyIn, weekdaysIn, type Diet } from "./lexicon";
 
 export interface Attendee {
   memberId: string;
@@ -41,6 +41,8 @@ export interface Influence {
   effect: "vetoed" | "boosted" | "lowered" | "checked" | "excused";
   venue?: string;
   detail: string;
+  /** The same reason addressed to its owner ("you're allergic to shellfish"). */
+  you?: string;
 }
 
 export interface ScoredVenue {
@@ -124,7 +126,8 @@ export function plan(req: PlanRequest, attendees: Attendee[], groupFacts: Stored
     if (!busy) return true;
     dayConflict ??= { day: req.day, busyMemberIds: [] };
     dayConflict.busyMemberIds.push(a.memberId);
-    influences.push({ memberId: a.memberId, blobId: busy.blobId, factKey: busy.key, kind: busy.kind, tier: busy.tier, effect: "excused", detail: `${a.name} is busy on ${req.day}` });
+    const dayName = DAY_LABEL[req.day!]?.en ?? req.day!;
+    influences.push({ memberId: a.memberId, blobId: busy.blobId, factKey: busy.key, kind: busy.kind, tier: busy.tier, effect: "excused", detail: `${a.name} is busy on ${dayName}`, you: `you're busy on ${dayName}, so the plan works around you` });
     return false;
   });
   if (dayConflict) {
@@ -144,40 +147,44 @@ export function plan(req: PlanRequest, attendees: Attendee[], groupFacts: Stored
 
     for (const a of present) {
       for (const f of a.facts.filter(usable)) {
-        const veto = (detail: string) => vetoes.push({ memberId: a.memberId, blobId: f.blobId, factKey: f.key, kind: f.kind, tier: f.tier, effect: "vetoed", venue: v.slug, detail });
+        const veto = (detail: string, you: string) => vetoes.push({ memberId: a.memberId, blobId: f.blobId, factKey: f.key, kind: f.kind, tier: f.tier, effect: "vetoed", venue: v.slug, detail, you });
         if ((f.kind === "allergy" || f.kind === "avoid") && f.attrs.avoid && v.tags.includes(f.attrs.avoid)) {
-          veto(`${v.name} serves ${f.attrs.avoid}; ${a.name} ${f.kind === "allergy" ? "is allergic" : "doesn't eat it"}`);
+          veto(`${v.name} serves ${f.attrs.avoid}; ${a.name} ${f.kind === "allergy" ? "is allergic" : "doesn't eat it"}`,
+            `${v.name} serves ${f.attrs.avoid}, and ${f.kind === "allergy" ? "you're allergic to it" : "you don't eat it"}`);
         }
         if (f.kind === "diet" && f.attrs.diet) {
           const diet = f.attrs.diet as Diet;
           const excluded = (DIET_EXCLUDES[diet] ?? []).filter((g) => v.tags.includes(g));
           const mitigated = ((diet === "vegetarian" || diet === "vegan") && v.veg) || (diet === "halal" && v.halal);
-          if (excluded.length && !mitigated) veto(`${v.name} is built around ${excluded.join(", ")}; ${a.name} is ${diet}`);
+          if (excluded.length && !mitigated) veto(`${v.name} is built around ${excluded.join(", ")}; ${a.name} is ${diet}`, `${v.name} is built around ${excluded.join(", ")}, and you're ${diet}`);
           if ((diet === "vegetarian" || diet === "vegan") && !v.veg && !excluded.length && v.cuisine.length && !v.cuisine.includes("vegetarian") && !v.cuisine.includes("cafe")) {
-            veto(`${v.name} has no known vegetarian options; ${a.name} is ${diet}`);
+            veto(`${v.name} has no known vegetarian options; ${a.name} is ${diet}`, `${v.name} has no known vegetarian options, and you're ${diet}`);
           }
         }
         if (f.kind === "budget" && f.attrs.max && v.price !== undefined && (!f.attrs.currency || !v.currency || f.attrs.currency === v.currency) && v.price > Number(f.attrs.max)) {
-          veto(`${v.name} costs about ${v.price}, above ${a.name}'s limit`);
+          const price = formatMoney(v.price, v.currency ?? "VND");
+          veto(`${v.name} costs about ${price}, above ${a.name}'s limit`, `${v.name} costs about ${price}, above your limit`);
         }
         if (f.kind === "like") {
           const hit = (f.attrs.cuisine && v.cuisine.includes(f.attrs.cuisine)) || (f.attrs.food && v.tags.includes(f.attrs.food));
           if (hit) {
             score += 2;
             reasons.push(f.tier === "shared" ? `${a.name} loves ${f.attrs.cuisine ? cuisineLabel(f.attrs.cuisine) : f.attrs.food}` : "fits someone's taste");
-            influences.push({ memberId: a.memberId, blobId: f.blobId, factKey: f.key, kind: f.kind, tier: f.tier, effect: "boosted", venue: v.slug, detail: `${a.name} likes ${f.attrs.cuisine ?? f.attrs.food}` });
+            const what = f.attrs.cuisine ? cuisineLabel(f.attrs.cuisine) : f.attrs.food;
+            influences.push({ memberId: a.memberId, blobId: f.blobId, factKey: f.key, kind: f.kind, tier: f.tier, effect: "boosted", venue: v.slug, detail: `${a.name} likes ${what}`, you: `you like ${what}` });
           }
         }
         if (f.kind === "dislike") {
           const hit = (f.attrs.cuisine && v.cuisine.includes(f.attrs.cuisine)) || (f.attrs.food && v.tags.includes(f.attrs.food));
           if (hit) {
             score -= 2;
-            influences.push({ memberId: a.memberId, blobId: f.blobId, factKey: f.key, kind: f.kind, tier: f.tier, effect: "lowered", venue: v.slug, detail: `${a.name} doesn't enjoy ${f.attrs.cuisine ?? f.attrs.food}` });
+            const what = f.attrs.cuisine ? cuisineLabel(f.attrs.cuisine) : f.attrs.food;
+            influences.push({ memberId: a.memberId, blobId: f.blobId, factKey: f.key, kind: f.kind, tier: f.tier, effect: "lowered", venue: v.slug, detail: `${a.name} doesn't enjoy ${what}`, you: `you don't enjoy ${what}` });
           }
         }
         if (f.kind === "area" && f.attrs.area && v.area && fold(f.attrs.area) === fold(v.area)) {
           score += 1;
-          influences.push({ memberId: a.memberId, blobId: f.blobId, factKey: f.key, kind: f.kind, tier: f.tier, effect: "boosted", venue: v.slug, detail: `close to ${a.name}` });
+          influences.push({ memberId: a.memberId, blobId: f.blobId, factKey: f.key, kind: f.kind, tier: f.tier, effect: "boosted", venue: v.slug, detail: `${v.name} is close to ${a.name}`, you: `${v.name} is close to you` });
         }
       }
     }

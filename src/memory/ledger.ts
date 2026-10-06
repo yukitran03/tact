@@ -102,6 +102,8 @@ export class Ledger {
     } else {
       mkdirSync(dataDir, { recursive: true });
       this.db = new Database(join(dataDir, "tact.sqlite"), { create: true });
+      // The server, the Telegram worker and scripts may share one file.
+      this.db.exec("PRAGMA busy_timeout = 8000;");
       this.db.exec("PRAGMA journal_mode = WAL;");
     }
     this.db.exec(SCHEMA);
