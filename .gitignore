@@ -1,0 +1,8 @@
+node_modules
+.tact
+.env
+.env.*
+!.env.example
+web/dist
+*.log
+.DS_Store

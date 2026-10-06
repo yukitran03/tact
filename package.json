@@ -1,0 +1,34 @@
+{
+  "name": "tact",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tact — the group-chat bot that remembers everyone and tells no one. Party-aware memory on Walrus Memory.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "scripts": {
+    "dev": "bun --watch src/server/main.ts",
+    "start": "bun src/server/main.ts",
+    "build:web": "bun scripts/build-web.ts",
+    "telegram": "bun src/channels/telegram.ts",
+    "smoke": "bun scripts/smoke.ts",
+    "seed": "bun scripts/seed-personas.ts",
+    "eval": "bun scripts/eval.ts",
+    "evidence": "bun scripts/evidence.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mysten-incubation/memwal": "0.1.8",
+    "@mysten/seal": "^1.4.19",
+    "@mysten/sui": "^2.35.0",
+    "@mysten/walrus": "^1.2.34",
+    "preact": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "typescript": "^7.0.2"
+  }
+}
