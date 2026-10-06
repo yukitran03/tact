@@ -90,6 +90,7 @@ describe("engine", () => {
   test("the owner can ask why, and gets their own reasons with memory ids", async () => {
     await seed(s);
     await s.say(s.chi.id, "dinner friday?");
+    await s.say(s.chi.id, "dinner thursday?"); // a later plan that also rules out Ốc Đào, without Bảo
     const why = await s.say(s.bao.id, "why did you skip Ốc Đào?", "dm");
     expect(why[0].text).toContain("allergic");
     const chiWhy = await s.say(s.chi.id, "why did you skip Ốc Đào?", "dm");

@@ -31,9 +31,12 @@ const key = `repro-${Date.now()}`;
 await mw.remember("Identical fact for two users.", "app:user-a", { idempotencyKey: key });
 await mw.remember("Identical fact for two users.", "app:user-b", { idempotencyKey: key });
 ```
-**Observed in production use:** two users each said "I'm allergic to peanuts"; the second write failed with
-`409 {"error":"idempotency_key was already used for a request with different content"}`.
-Six of 57 writes in our first seed failed this way.
+**Verified on mainnet 2026-10-07** (`bun scripts/repro-idempotency.ts`), identical text, same key, two namespaces:
+```
+namespace A accepted: cdf6082a-6d2b-4b7f-8331-65b180011a85 running
+namespace B rejected: Walrus Memory server error (409): {"error":"idempotency_key was already used for a request with different content"}
+```
+So the key is looked up account-wide and the namespace counts as part of the "content". In real use, two users each said "I'm allergic to peanuts"; with content-derived keys the second write failed the same way — six of 57 writes in our first seed.
 
 **Expected:** either keys scoped per `(owner, namespace)`, or the docs and the `idempotencyKey` JSDoc stating the scope and recommending a per-write id. Related: #1057 (reuse with different content is a permanent lockout), #1083 (default key derivation).
 

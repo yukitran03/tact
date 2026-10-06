@@ -94,7 +94,7 @@ await evaluate("document.querySelector('.feed').scrollTo({ top: 1e6 }); true");
 await click(".tabs button", "Receipt");
 await waitFor("document.querySelector('.stat-grid')");
 await shot("table-receipt-bao");
-await click(".tabs button", "My memory");
+await click(".tabs button", "Memory");
 await waitFor("document.querySelectorAll('.fact').length > 3");
 await shot("table-memory-bao");
 await click(".side-item", "Private with Tact");

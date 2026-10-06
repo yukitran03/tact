@@ -163,7 +163,9 @@ export class Engine {
     const decisions = recent.map((r) => JSON.parse(r.decision) as StoredPlan);
     // Prefer the most recent plan that involved the place the question names.
     const named = (d: StoredPlan) => [...d.ruledOut, ...(d.choice ? [d.choice] : []), ...d.alternatives].find((v) => t.includes(fold(v.name)));
-    const decision = decisions.find((d) => named(d)) ?? decisions[0];
+    // Prefer the latest plan where this person's memory actually touched the named place.
+    const touched = (d: StoredPlan) => { const v = named(d); return !!v && d.influences.some((i) => i.memberId === member.id && i.venue === v.slug); };
+    const decision = decisions.find(touched) ?? decisions.find((d) => named(d)) ?? decisions[0];
     const place = named(decision);
     const mine = decision.influences.filter((i) => i.memberId === member.id && (!place || !i.venue || i.venue === place.slug));
     const lines0 = [...new Set(mine.map((i) => i.you ?? i.detail))];
@@ -361,7 +363,8 @@ export class Engine {
       withheld++;
       this.ledger.addShield({
         plan_id: planRow.id, group_id: group.id, owner_member_id: inf.memberId, fact_key: inf.factKey, fact_kind: inf.kind,
-        blob_id: inf.blobId ?? null, action: inf.effect, detail: inf.detail,
+        // The Shield log is only ever shown to its owner, so it speaks to them.
+        blob_id: inf.blobId ?? null, action: inf.effect, detail: inf.you ?? inf.detail,
       });
       if (inf.effect !== "boosted") {
         const list = notes.get(inf.memberId) ?? [];
