@@ -204,6 +204,11 @@ export class Engine {
         if (answer.trim()) return { intent: "answer", used: r.facts.length, out: [room(answer.trim(), { type: "answer", source: "llm" })] };
       } catch { /* fall through to the deterministic answer */ }
     }
+    // Safety-critical facts lead any fallback answer about food, whatever the vector search ranked first.
+    if (/(eat|food|restaurant|place|dinner|lunch|watch|avoid|order|menu|an|quan|mon|nha hang)/.test(fold(text))) {
+      const safety = r.facts.filter((f) => ["allergy", "diet", "avoid"].includes(f.kind) && !relevant.includes(f));
+      relevant.unshift(...safety);
+    }
     if (relevant.length) {
       return {
         intent: "answer", used: relevant.length,
