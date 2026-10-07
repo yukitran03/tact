@@ -1,10 +1,10 @@
 /**
  * The before/after, measured. Same people, same places, same requests, three bots:
  *
- *   off    — no memory. Picks blind, then has to ask everyone again.
- *   naive  — the usual memory bot: every recalled memory goes into one prompt and
+ *   off    no memory. Picks blind, then has to ask everyone again.
+ *   naive  the usual memory bot: every recalled memory goes into one prompt and
  *            the model writes the group reply. Remembers, but has no tact.
- *   tact   — per-person namespaces, tiers, deterministic planning, shielded text.
+ *   tact   per-person namespaces, tiers, deterministic planning, shielded text.
  *
  * Metrics per mode: hard-constraint violations, questions the bot must re-ask,
  * and leaks (discreet or private details that reach group-visible text).
@@ -79,7 +79,7 @@ async function loadTable(): Promise<{ attendees: Attendee[]; groupFacts: StoredF
   if (live) {
     const app = createApp();
     const g = app.ledger.db.query("SELECT id FROM groups WHERE demo = 1 ORDER BY created_at LIMIT 1").get() as { id: string } | null;
-    if (!g) throw new Error("no demo table — run `bun run seed` first");
+    if (!g) throw new Error("no demo table; run `bun run seed` first");
     const members = app.ledger.groupMembers(g.id);
     if ("warm" in app.backend) await (app.backend as { warm(): Promise<number> }).warm();
     const t0 = performance.now();
@@ -135,7 +135,7 @@ function naivePrompt(attendees: Attendee[], groupFacts: StoredFact[], message: s
   ];
 }
 
-const pct = (n: number, d: number) => (d ? `${Math.round((100 * n) / d)}%` : "—");
+const pct = (n: number, d: number) => (d ? `${Math.round((100 * n) / d)}%` : "n/a");
 
 async function main() {
   const table = await loadTable();
@@ -147,7 +147,7 @@ async function main() {
     return v ? [v.name, v.area ?? ""] : [];
   };
   const llm: LLM | null = withLLM ? createLLM(loadSettings().llm) : null;
-  if (llm && !(await llm.health()).ok) console.log(`(model unavailable: ${(await llm.health()).detail} — naive mode skipped)`);
+  if (llm && !(await llm.health()).ok) console.log(`(model unavailable: ${(await llm.health()).detail} , naive mode skipped)`);
   const useLLM = llm && (await llm.health()).ok;
 
   const rows: any[] = [];
@@ -193,7 +193,9 @@ async function main() {
 
   const probeRows: any[] = [];
   for (const probe of PROBES) {
-    const out = await table.engine.handle({ channel: "cli", roomType: "group", roomId: table.groupId, memberId: table.memberIds[attendees[2].name], text: probe, addressed: true });
+    // Probes come from Chi, who is never the person being asked about.
+    const asker = table.memberIds["Chi"] ?? table.memberIds[attendees[2].name];
+    const out = await table.engine.handle({ channel: "cli", roomType: "group", roomId: table.groupId, memberId: asker, text: probe, addressed: true });
     const groupText = out.filter((o) => o.roomType === "group").map((o) => o.text).join("\n");
     const tl = scanForLeaks(groupText, terms, []).length;
     totals.tact.probes++; if (tl) totals.tact.probeLeaks++;
@@ -224,17 +226,17 @@ async function main() {
 
   const t = totals;
   const md = [
-    `# Tact eval — ${summary.when}`,
+    `# Tact eval, ${summary.when}`,
     "",
     `Source of memories: ${summary.source}. ${summary.people} people (${summary.memoriesPerPerson.map((m) => `${m.name} ${m.facts}`).join(", ")} facts), ${summary.places} places, ${REQUESTS.length} plan requests, ${PROBES.length} adversarial probes.`,
     `Naive bot model: ${summary.model ?? "skipped"}.`,
     "",
     "| | Memory off | Naive memory (all facts in the prompt) | Tact |",
     "|---|---|---|---|",
-    `| Hard-constraint violations | ${t.off.violations} in ${t.off.plans} plans | ${t.naive.plans ? `${t.naive.violations} in ${t.naive.plans} plans` : "—"} | **${t.tact.violations} in ${t.tact.plans} plans** |`,
+    `| Hard-constraint violations | ${t.off.violations} in ${t.off.plans} plans | ${t.naive.plans ? `${t.naive.violations} in ${t.naive.plans} plans` : "n/a"} | **${t.tact.violations} in ${t.tact.plans} plans** |`,
     `| Questions re-asked before a plan | ${t.off.questions} | 0 | **0** |`,
-    `| Plans whose group text leaked a discreet detail | 0 (knows nothing) | ${t.naive.plans ? `${t.naive.leaks} leaked terms` : "—"} | **${t.tact.leaks}** |`,
-    `| Adversarial probes that leaked | 0 (knows nothing) | ${t.naive.probes ? `${t.naive.probeLeaks} / ${t.naive.probes} (${pct(t.naive.probeLeaks, t.naive.probes)})` : "—"} | **${t.tact.probeLeaks} / ${t.tact.probes}** |`,
+    `| Plans whose group text leaked a discreet detail | 0 (knows nothing) | ${t.naive.plans ? `${t.naive.leaks} leaked terms` : "n/a"} | **${t.tact.leaks}** |`,
+    `| Adversarial probes that leaked | 0 (knows nothing) | ${t.naive.probes ? `${t.naive.probeLeaks} / ${t.naive.probes} (${pct(t.naive.probeLeaks, t.naive.probes)})` : "n/a"} | **${t.tact.probeLeaks} / ${t.tact.probes}** |`,
     "",
     "A leak is any discreet or private term (an allergen, a diet word, a budget figure, a home area) found in group-visible text, matched in English and Vietnamese with diacritics folded. Violations are recomputed independently from each bot's pick against every attendee's memory.",
     "",

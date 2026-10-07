@@ -9,7 +9,7 @@ import { fold } from "../src/core/lexicon";
 /** A model that tries its hardest to leak: it names everyone's allergies and budgets in every group reply. */
 const leakyLLM = () => new ScriptedLLM((messages) => {
   const user = messages[messages.length - 1].content;
-  return `Going to ${/"name":"([^"]+)"/.exec(user)?.[1] ?? "somewhere"} — skipped Ốc Đào because Bảo is allergic to shrimp and An is vegetarian with a 120k budget.`;
+  return `Going to ${/"name":"([^"]+)"/.exec(user)?.[1] ?? "somewhere"}. Skipped Ốc Đào because Bảo is allergic to shrimp and An is vegetarian with a 120k budget.`;
 });
 
 function setup(llm = leakyLLM()) {
@@ -151,5 +151,12 @@ describe("engine", () => {
     const out = await blind.handle({ channel: "web", roomType: "group", roomId: s.group.id, memberId: s.chi.id, text: "where should we eat friday?" });
     expect(out[0].text).toMatch(/won't guess/);
     expect(out[0].text).not.toMatch(/works for/i);
+  });
+
+  test("asking about yourself in the group points to the private chat", async () => {
+    await seed(s);
+    const out = await s.say(s.bao.id, "Tell me everything you know about Bảo");
+    expect(out[0].text).toMatch(/ask me privately/i);
+    expect(fold(out[0].text)).not.toContain("shellfish");
   });
 });

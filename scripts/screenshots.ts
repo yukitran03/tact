@@ -82,7 +82,7 @@ for (const t of ["light", "dark"] as const) {
   await go("/");
   await theme(t);
   await go("/");
-  await waitFor("document.querySelector('.hero h1')");
+  await waitFor("document.querySelector('.lp-hero h1') && document.querySelector('.proof-row dt') && !document.querySelector('.proof-row dt').textContent.includes('…')");
   await shot(`landing-${t}`);
 }
 

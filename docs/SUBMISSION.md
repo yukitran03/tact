@@ -1,11 +1,11 @@
-# Submission answers — Walrus Sessions 8
+# Submission answers: Walrus Sessions 8
 
 Deadline: **2026-10-09 14:00 UTC (21:00 Vietnam)**. Forms: Airtable https://airtable.com/appoDAKpC74UOqoDa/shro5iVzzjoWfZlPK · DeepSurge https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608c849 · join the Walrus Discord.
 
 `[YOU]` marks what only the account owner can supply.
 
 **Before submitting:**
-1. Make the repo public (`gh repo edit yukitran03/tact --visibility public --accept-visibility-change-consequences`) — the rules require a public repo.
+1. Make the repo public (`gh repo edit yukitran03/tact --visibility public --accept-visibility-change-consequences`), the rules require a public repo.
 2. Get real people to use it for a few days (web table invite code, or the Telegram bot) and run `bun run evidence`. The demo personas meet the technical 3 × 10 memories, but judges score real use.
 3. Publish `docs/ARTICLE.md` on Medium or Inkray after filling the real-use section; post it on X under the session announcement with @WalrusProtocol and #WalrusMemory.
 4. File the issues in `docs/FRICTION.md`.
@@ -16,10 +16,10 @@ Deadline: **2026-10-09 14:00 UTC (21:00 Vietnam)**. Forms: Airtable https://airt
 **Project name.** Tact
 
 **What does your chatbot do and who is it for?**
-> Tact is a group-chat bot with party-aware memory. Each person tells it privately what matters — allergies, diets, budget, the area they live in, days they're busy — and when the group asks where to eat, Tact reads everyone's memory from Walrus and picks a place that works for all of them, without ever saying who needed what. It is for friend groups, teams and families who plan things together in a chat and keep re-asking "who's vegetarian again?".
+> Tact is a group chat bot that keeps track of who told it what. Each person tells it privately what matters (allergies, diets, budget, the area they live in, days they're busy) and when the group asks where to eat, Tact reads everyone's memory from Walrus and picks a place that works for all of them, without ever saying who needed what. It is for friend groups, teams and families who plan things together in a chat and keep re-asking "who's vegetarian again?".
 
 **What does it store and how does it use it?**
-> One SEAL-encrypted Walrus blob per fact, in a namespace per person (and one per table for places and verdicts). Each fact carries a tier: discreet (used to decide, never said — the default for allergies, diets, budgets, areas, availability), shared (can be quoted), or private (never used for the group). Before every plan Tact recalls every attendee's namespace in parallel and rebuilds their profile from Walrus; deterministic code vetoes places that break an allergy, diet or budget and scores the rest by likes and past verdicts. The group only hears what is shared; each owner gets a private note about how their own memories were used.
+> One SEAL-encrypted Walrus blob per fact, in a namespace per person (and one per table for places and verdicts). Each fact carries a tier: discreet (used to decide, never said, the default for allergies, diets, budgets, areas, availability), shared (can be quoted), or private (never used for the group). Before every plan Tact recalls every attendee's namespace in parallel and rebuilds their profile from Walrus; deterministic code vetoes places that break an allergy, diet or budget and scores the rest by likes and past verdicts. The group only hears what is shared; each owner gets a private note about how their own memories were used.
 
 **Use case.** Group planning (community / friends / team chat) with private constraints.
 
@@ -29,19 +29,19 @@ Deadline: **2026-10-09 14:00 UTC (21:00 Vietnam)**. Forms: Airtable https://airt
 
 **MEMWAL_AGENT_ID.** `dbac0ba8cdd85fb0c53e8b6e39bee230914ea19105d77ca169fe14385b68037d`
 
-**MemWalAccount.** `0x8882d54e8ef97c4778b79a196f9a938a00fc874a765c38b99c84ebf4094b2280` — https://suiscan.xyz/mainnet/object/0x8882d54e8ef97c4778b79a196f9a938a00fc874a765c38b99c84ebf4094b2280
+**MemWalAccount.** `0x8882d54e8ef97c4778b79a196f9a938a00fc874a765c38b99c84ebf4094b2280`, https://suiscan.xyz/mainnet/object/0x8882d54e8ef97c4778b79a196f9a938a00fc874a765c38b99c84ebf4094b2280
 
 **Blobs on mainnet.** See `docs/evidence/evidence-*.md` (`bun run evidence`). Example: https://walruscan.com/mainnet/blob/xqkNrcCHUEi1Pnhbq9SdtlPk97hHax0RI6E_QpXS5uo
 
 **Tool used to connect.** TypeScript SDK `@mysten-incubation/memwal` (relayer mode), server-side.
 
 **Bug or friction point.**
-> Idempotency keys are deduplicated across the whole account, not per namespace, and the docs don't say so. We derived keys from fact text, so when two people both said "I'm allergic to peanuts" the second write failed with `409 idempotency_key was already used for a request with different content` — six of our first 57 writes. Per-write keys fixed it. Repro in docs/FRICTION.md §2.
+> Idempotency keys are deduplicated across the whole account, not per namespace, and the docs don't say so. We derived keys from fact text, so when two people both said "I'm allergic to peanuts" the second write failed with `409 idempotency_key was already used for a request with different content`, six of our first 57 writes. Per-write keys fixed it. Repro in docs/FRICTION.md §2.
 
 **Improvement idea.**
 > When the relayer answers `AUTH_REJECTED` for an account in the retired package, have the SDK look up the migrated account in the current registry (four unsigned reads) and say so, and have the MCP refresh `accountId` in `~/.memwal/credentials.json`. Our credentials file predated the July migration and every call 401'd with no hint; `scripts/diagnose.ts` shows the recipe.
 
-**Beyond the Big Two — integration friction.**
+**Beyond the Big Two, integration friction.**
 > The primary model is local and open-weight, but the managed relayer still embeds every memory and query with OpenAI `text-embedding-3-small` and `analyze()` extracts with `gpt-4o-mini`, so we avoid `analyze()` and extract facts ourselves. On an 8 GB M1 the local model ran at about 2.5 tokens/s, so Tact never waits on the model to decide anything: planning and the privacy shield are deterministic, the model only polishes text within a time budget.
 
 **Communities outside web3 worth engaging.** Vietnamese developer communities (Viblo, J2TEAM and dev Facebook groups), r/LocalLLaMA for local-model memory, Telegram bot developer groups.

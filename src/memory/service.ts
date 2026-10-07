@@ -207,7 +207,7 @@ export class MemoryService {
     return result;
   }
 
-  /** Several owners at once; recall runs in parallel because each costs 1–10 s on mainnet. */
+  /** Several owners at once; recall runs in parallel because each costs 1 to 10 s on mainnet. */
   async readMany(owners: OwnerRef[], opts: { fresh?: boolean } = {}): Promise<Map<string, ReadResult>> {
     const results = await Promise.all(owners.map((o) => this.readFacts(o, opts)));
     const out = new Map<string, ReadResult>();

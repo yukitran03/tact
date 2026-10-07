@@ -68,7 +68,7 @@ const members = Object.fromEntries(PERSONAS.map((p) => {
 
 if (process.argv.includes("--topup")) {
   // Re-submit failed writes and add any fact the current extractor finds that the
-  // ledger does not already hold — without replaying (and duplicating) the chats.
+  // ledger does not already hold, without replaying (and duplicating) the chats.
   const { extractByRules } = await import("../src/core/extract");
   memory.resumeInFlight(); // rows a killed run left queued are marked failed, then retried below
   const retried = memory.retryFailed();

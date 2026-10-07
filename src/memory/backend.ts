@@ -48,7 +48,7 @@ function retryAfterMs(err: unknown): number | null {
  *
  * Writes go through a paced queue. The relayer budgets 60 weighted requests a
  * minute per delegate key (measured: a 429 names `layer: delegate_key`), and a
- * remember() weighs 5 — so one key gets 12 writes a minute, shared by every
+ * remember() weighs 5, so one key gets 12 writes a minute, shared by every
  * user of the bot, minus the recalls and status polls that weigh 1 each. Ten a
  * minute leaves room for those; a burst of onboarding answers queues instead
  * of failing.

@@ -3,7 +3,7 @@ import type { Fact, Kind, Tier } from "../core/types";
 /**
  * Every memory Tact writes is one self-describing line: a readable sentence
  * followed by a tag block. The tag block is what makes Walrus the source of
- * truth — a fresh server with an empty database can rebuild every profile,
+ * truth: a fresh server with an empty database can rebuild every profile,
  * tier and supersede chain from recall alone.
  *
  *   Allergic to shellfish (shrimp, crab, clams). ⟦tact|v1|kind=allergy|tier=discreet|key=allergy:shellfish|a.avoid=shellfish|at=2026-10-07T01:30:00.000Z⟧

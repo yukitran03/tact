@@ -110,7 +110,7 @@ const usable = (f: StoredFact) => f.tier !== "private";
 /**
  * Deterministic planning over recalled memories. The model never decides who
  * can eat where: hard constraints veto, soft preferences score. That is what
- * makes memory load-bearing — with no memory, every veto below disappears.
+ * makes memory necessary: with no memory, every veto below disappears.
  */
 export function plan(req: PlanRequest, attendees: Attendee[], groupFacts: StoredFact[], opts: { lastVenueSlug?: string } = {}): PlanResult {
   const venues = venuesFrom(groupFacts);

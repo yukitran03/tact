@@ -5,7 +5,7 @@ import {
 
 export type Said = "dm" | "group";
 
-/** Defaults: what you tell Tact privately is used quietly; preferences you'd say out loud are shareable. */
+/** Defaults: what you tell Tact privately is used but not repeated; preferences you'd say out loud are shareable. */
 export function defaultTier(kind: Kind, said: Said): Tier {
   if (said === "group") return "shared";
   switch (kind) {
@@ -66,7 +66,7 @@ export function extractByRules(raw: string, said: Said, now = new Date().toISOSt
   if (am) {
     const negated = /(no longer|not allergic|khong con|het di ung|khong (bi )?di ung)/.test(t);
     for (const g of foodGroupsIn(am[3] || text)) {
-      out.push(fact("allergy", `allergy:${g}`, negated ? `No longer allergic to ${g}.` : `Allergic to ${g} — must avoid it.`,
+      out.push(fact("allergy", `allergy:${g}`, negated ? `No longer allergic to ${g}.` : `Allergic to ${g}. Must avoid it.`,
         { avoid: g }, said, text, now));
       if (negated) out[out.length - 1].retract = true;
     }
@@ -157,7 +157,7 @@ export function extractVenue(raw: string, by: string, now = new Date().toISOStri
   const m = /^\s*(?:\/addplace|\/add|add (?:a )?(?:place|venue|restaurant)|them quan|thêm quán|quan moi|quán mới)\s*:?\s*(.+)$/i.exec(raw);
   if (!m) return null;
   const body = m[1].trim();
-  const [namePart, ...restParts] = body.split(/[,;—–]| - /);
+  const [namePart, ...restParts] = body.split(/[,;\u2013\u2014]| - /);
   const name = namePart.trim();
   if (!name) return null;
   const rest = restParts.join(", ");

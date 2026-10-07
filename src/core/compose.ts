@@ -64,15 +64,15 @@ export function planTemplate(ctx: PublicPlanContext): string {
   const { lang } = ctx;
   if (ctx.unknownVenues) {
     return L(lang,
-      "I don't know any places for this group yet. Add one like: `add place: Phở Hòa, pho, ~70k, District 3` — I'll remember it on Walrus and check it against everyone next time.",
-      "Mình chưa biết quán nào của nhóm. Thêm quán kiểu: `thêm quán: Phở Hòa, phở, ~70k, Quận 3` — mình sẽ nhớ trên Walrus và kiểm tra với mọi người lần sau.");
+      "I don't know any places for this group yet. Add one like `add place: Phở Hòa, pho, ~70k, District 3` and I'll check it against everyone next time.",
+      "Mình chưa biết quán nào của nhóm. Thêm quán kiểu `thêm quán: Phở Hòa, phở, ~70k, Quận 3`, lần sau mình sẽ kiểm tra với mọi người.");
   }
   const lines: string[] = [];
   if (ctx.unreadable.length && ctx.unreadable.length >= ctx.people) {
     // Refusing beats planning blind: a plan that ignores an allergy is worse than no plan.
     return L(lang,
-      "I can't reach anyone's memory on Walrus right now, so I won't guess — a plan that ignores someone's allergy is worse than no plan. Try again in a few minutes.",
-      "Mình chưa đọc được trí nhớ của ai trên Walrus lúc này, nên mình không đoán bừa — một kế hoạch bỏ qua dị ứng của ai đó còn tệ hơn không có kế hoạch. Thử lại sau vài phút nhé.");
+      "I can't reach anyone's memory on Walrus right now, so I won't guess. A plan that ignores someone's allergy is worse than no plan. Try again in a few minutes.",
+      "Mình chưa đọc được trí nhớ của ai trên Walrus lúc này nên sẽ không đoán. Một kế hoạch bỏ qua dị ứng của ai đó còn tệ hơn không có kế hoạch. Thử lại sau vài phút nhé.");
   }
   if (ctx.dayNote) {
     const alt = ctx.dayNote.alternativeDay ? dayName(ctx.dayNote.alternativeDay, lang) : null;
@@ -82,8 +82,8 @@ export function planTemplate(ctx: PublicPlanContext): string {
   }
   if (!ctx.choice) {
     lines.push(L(lang,
-      `None of the places I know works for everyone this time (${ctx.ruledOutCount} checked). Add another spot and I'll check it quietly against everyone's notes.`,
-      `Lần này không quán nào mình biết hợp với tất cả mọi người (đã xét ${ctx.ruledOutCount} quán). Thêm quán khác nhé, mình sẽ âm thầm kiểm tra với ghi chú của mọi người.`));
+      `None of the places I know works for everyone this time (${ctx.ruledOutCount} checked). Add another spot and I'll check it against everyone's notes.`,
+      `Lần này không quán nào mình biết hợp với tất cả mọi người (đã xét ${ctx.ruledOutCount} quán). Thêm quán khác nhé, mình sẽ kiểm tra với ghi chú của mọi người.`));
     return lines.join("\n");
   }
   const c = ctx.choice;
@@ -96,25 +96,25 @@ export function planTemplate(ctx: PublicPlanContext): string {
   const tasteNote = c.reasons.includes("fits someone's taste");
   const checked = ctx.people - ctx.unreadable.length;
   lines.push(L(lang,
-    `It works for ${ctx.unreadable.length ? `the ${checked} of you I could check` : `all ${ctx.people} of you`}${why.length ? ` — ${why.join(", ")}` : ""}${tasteNote ? (why.length ? ", and it fits someone's taste" : " and fits someone's taste") : ""}.`,
-    `Hợp với ${ctx.unreadable.length ? `${checked} người mình kiểm tra được` : `cả ${ctx.people} người`}${why.length ? ` — ${why.join(", ")}` : ""}${tasteNote ? ", và hợp khẩu vị của một bạn trong nhóm" : ""}.`));
+    `It works for ${ctx.unreadable.length ? `the ${checked} of you I could check` : `all ${ctx.people} of you`}${why.length ? `: ${why.join(", ")}` : ""}${tasteNote ? (why.length ? ", and it fits someone's taste" : " and fits someone's taste") : ""}.`,
+    `Hợp với ${ctx.unreadable.length ? `${checked} người mình kiểm tra được` : `cả ${ctx.people} người`}${why.length ? `: ${why.join(", ")}` : ""}${tasteNote ? ", và hợp khẩu vị của một bạn trong nhóm" : ""}.`));
   if (ctx.unreadable.length) {
     lines.push(L(lang,
-      `I couldn't reach ${ctx.unreadable.join(", ")}'s memory on Walrus just now, so I can't promise it fits them — ask again in a few minutes.`,
-      `Mình chưa đọc được trí nhớ của ${ctx.unreadable.join(", ")} trên Walrus lúc này, nên chưa chắc hợp với họ — hỏi lại sau vài phút nhé.`));
+      `I couldn't reach ${ctx.unreadable.join(", ")}'s memory on Walrus just now, so I can't promise it fits them. Ask again in a few minutes.`,
+      `Mình chưa đọc được trí nhớ của ${ctx.unreadable.join(", ")} trên Walrus lúc này, nên chưa chắc hợp với họ. Hỏi lại sau vài phút nhé.`));
   }
   if (ctx.alternatives.length) {
     lines.push(L(lang, `Backup: ${ctx.alternatives.map((a) => a.name).join(" or ")}.`, `Dự phòng: ${ctx.alternatives.map((a) => a.name).join(" hoặc ")}.`));
   }
   if (ctx.ruledOutCount) {
     lines.push(L(lang,
-      `(${ctx.ruledOutCount} other place${ctx.ruledOutCount > 1 ? "s" : ""} didn't work for everyone — I keep the reasons private.)`,
-      `(${ctx.ruledOutCount} quán khác chưa hợp với tất cả — lý do mình giữ kín.)`));
+      `(${ctx.ruledOutCount} other place${ctx.ruledOutCount > 1 ? "s" : ""} didn't work for everyone. The reasons stay private.)`,
+      `(${ctx.ruledOutCount} quán khác chưa hợp với tất cả. Lý do mình giữ kín.)`));
   }
   if (ctx.peopleWithoutMemory.length) {
     lines.push(L(lang,
-      `${ctx.peopleWithoutMemory.join(", ")}: I don't know your preferences yet — DM me anything you can't eat and I'll quietly take it into account.`,
-      `${ctx.peopleWithoutMemory.join(", ")}: mình chưa biết khẩu vị của bạn — nhắn riêng cho mình món nào không ăn được, mình sẽ âm thầm tính vào.`));
+      `${ctx.peopleWithoutMemory.join(", ")}: I don't know your preferences yet. Message me privately with anything you can't eat and I'll take it into account.`,
+      `${ctx.peopleWithoutMemory.join(", ")}: mình chưa biết khẩu vị của bạn. Nhắn riêng cho mình món nào không ăn được, mình sẽ tính vào.`));
   }
   return lines.join("\n");
 }
@@ -143,7 +143,7 @@ export async function polishGroupReply(
       llm.complete([
         {
           role: "system",
-          content: `You are Tact, a warm, brief assistant in a group chat. Write the group message in ${ctx.lang === "vi" ? "Vietnamese" : "English"}, at most 3 short sentences, no emoji spam. Use ONLY the JSON facts given. Never mention allergies, diets, health, budgets, money worries, where anyone lives, or why a place was ruled out — say only that it didn't work for everyone.`,
+          content: `You are Tact, a warm, brief assistant in a group chat. Write the group message in ${ctx.lang === "vi" ? "Vietnamese" : "English"}, at most 3 short sentences, no emoji, no dashes. Use ONLY the JSON facts given. Never mention allergies, diets, health, budgets, money worries, where anyone lives, or why a place was ruled out. Say only that it didn't work for everyone.`,
         },
         { role: "user", content: JSON.stringify(ctx) },
       ], { temperature: 0.4, maxTokens: 160 }),
@@ -163,9 +163,9 @@ export async function polishGroupReply(
 }
 
 const TIER_LABEL: Record<Tier, { en: string; vi: string }> = {
-  private: { en: "private — only used when you talk to me", vi: "riêng tư — chỉ dùng khi bạn nói chuyện với mình" },
-  discreet: { en: "discreet — I'll use it for group plans but never say it", vi: "kín đáo — mình dùng để chọn cho nhóm nhưng không bao giờ nói ra" },
-  shared: { en: "shared — fine to mention in the group", vi: "công khai — có thể nhắc trong nhóm" },
+  private: { en: "private: only used when you talk to me", vi: "riêng tư: chỉ dùng khi bạn nói chuyện với mình" },
+  discreet: { en: "discreet: used for group plans, never said", vi: "kín đáo: dùng để chọn cho nhóm, không bao giờ nói ra" },
+  shared: { en: "shared: fine to mention in the group", vi: "công khai: có thể nhắc trong nhóm" },
 };
 
 export function tierLabel(t: Tier, lang: Lang) {
@@ -174,7 +174,7 @@ export function tierLabel(t: Tier, lang: Lang) {
 
 export function confirmFacts(facts: Fact[], lang: Lang): string {
   if (!facts.length) return "";
-  const lines = facts.map((f) => `• ${f.retract ? L(lang, "Removed: ", "Đã gỡ: ") : ""}${f.text} — _${tierLabel(f.tier, lang)}_`);
+  const lines = facts.map((f) => `• ${f.retract ? L(lang, "Removed: ", "Đã gỡ: ") : ""}${f.text} _(${tierLabel(f.tier, lang)})_`);
   return L(lang, `Got it, saved to your memory on Walrus:\n${lines.join("\n")}`, `Đã ghi nhớ trên Walrus:\n${lines.join("\n")}`);
 }
 
@@ -196,8 +196,8 @@ export function listFacts(facts: StoredFact[], lang: Lang): string {
 
 export const T = {
   welcome: (name: string, lang: Lang) => L(lang,
-    `Hi ${name}! I'm Tact. I plan things for your group and remember what matters to each person — and I never repeat what you tell me privately.\n\nTo get started, tell me (any order, any words):\n1. Anything you can't or don't eat (allergies, diet)\n2. Your usual budget per meal\n3. The area you live or work in\n4. Food you love, food you'd rather skip\n5. Days you're usually busy\n\nAllergies, diets, budgets and areas stay *discreet* by default: I use them to pick places, but I never say them in the group.`,
-    `Chào ${name}! Mình là Tact. Mình lên kế hoạch cho nhóm và nhớ điều quan trọng với từng người — và không bao giờ kể lại những gì bạn nói riêng với mình.\n\nĐể bắt đầu, kể mình nghe (thứ tự nào cũng được):\n1. Món bạn không ăn được (dị ứng, ăn kiêng)\n2. Ngân sách thường cho một bữa\n3. Khu vực bạn ở hoặc làm việc\n4. Món thích, món không thích\n5. Ngày nào bạn hay bận\n\nDị ứng, chế độ ăn, ngân sách và khu vực mặc định là *kín đáo*: mình dùng để chọn quán, nhưng không bao giờ nói ra trong nhóm.`),
+    `Hi ${name}! I'm Tact. I plan things for your group and remember what matters to each person. I never repeat what you tell me privately.\n\nTo get started, tell me (any order, any words):\n1. Anything you can't or don't eat (allergies, diet)\n2. Your usual budget per meal\n3. The area you live or work in\n4. Food you love, food you'd rather skip\n5. Days you're usually busy\n\nAllergies, diets, budgets and areas stay *discreet* by default: I use them to pick places, but I never say them in the group.`,
+    `Chào ${name}! Mình là Tact. Mình lên kế hoạch cho nhóm và nhớ điều quan trọng với từng người. Mình không bao giờ kể lại những gì bạn nói riêng với mình.\n\nĐể bắt đầu, kể mình nghe (thứ tự nào cũng được):\n1. Món bạn không ăn được (dị ứng, ăn kiêng)\n2. Ngân sách thường cho một bữa\n3. Khu vực bạn ở hoặc làm việc\n4. Món thích, món không thích\n5. Ngày nào bạn hay bận\n\nDị ứng, chế độ ăn, ngân sách và khu vực mặc định là *kín đáo*: mình dùng để chọn quán, nhưng không bao giờ nói ra trong nhóm.`),
   nothingNew: (lang: Lang) => L(lang,
     "I didn't catch anything I should remember there. Try “I'm allergic to peanuts” or “my budget is 100k”.",
     "Mình chưa thấy điều gì cần nhớ. Thử nói “mình dị ứng đậu phộng” hoặc “ngân sách tầm 100k” nhé."),
@@ -205,15 +205,15 @@ export const T = {
     `That's ${name}'s to share, not mine. I can tell you what ${name} has said is fine to share in the group.`,
     `Chuyện đó để ${name} tự chia sẻ nhé. Mình chỉ kể những gì ${name} cho phép nói trong nhóm.`),
   whyNot: (lang: Lang) => L(lang,
-    "It didn't work for everyone this time. I keep the reasons to myself — if it's about you, DM me and I'll explain.",
-    "Lần này quán đó chưa hợp với tất cả. Lý do mình giữ kín — nếu liên quan đến bạn, nhắn riêng mình sẽ giải thích."),
+    "It didn't work for everyone this time. I keep the reasons to myself. If it's about you, ask me privately and I'll explain.",
+    "Lần này quán đó chưa hợp với tất cả. Lý do mình giữ kín. Nếu liên quan đến bạn, nhắn riêng mình sẽ giải thích."),
   keepsPrivate: (lang: Lang) => L(lang,
-    "People tell me those things privately, and that's where they stay. Ask me for a plan and I'll make sure it works for everyone — without saying who needed what.",
-    "Mọi người kể riêng với mình những chuyện đó, và mình giữ kín. Cứ hỏi mình lên kế hoạch, mình sẽ chọn sao cho hợp với tất cả — không nói ai cần gì."),
+    "People tell me those things privately, and that's where they stay. Ask me for a plan and I'll make sure it works for everyone, without saying who needed what.",
+    "Mọi người kể riêng với mình những chuyện đó, và mình giữ kín. Cứ hỏi mình lên kế hoạch, mình sẽ chọn sao cho hợp với tất cả mà không nói ai cần gì."),
   availability: (day: string, busy: number, alt: string | null, lang: Lang) => busy
     ? L(lang,
-      `Not everyone is free ${day} — I keep who and why to myself.${alt ? ` ${alt} works for the whole table.` : ""}`,
-      `${day} không phải ai cũng rảnh — ai và vì sao thì mình giữ kín.${alt ? ` ${alt} thì cả nhóm đều được.` : ""}`)
+      `Not everyone is free ${day}. Who and why stays with me.${alt ? ` ${alt} works for the whole table.` : ""}`,
+      `${day} không phải ai cũng rảnh. Ai và vì sao thì mình giữ kín.${alt ? ` ${alt} thì cả nhóm đều được.` : ""}`)
     : L(lang, `As far as I know, everyone is free ${day}.`, `Theo mình biết thì ${day} mọi người đều rảnh.`),
   help: (lang: Lang) => L(lang,
     "In the group: “where should we eat Friday?”, “add place: name, food, ~price, area”, feedback like “Phở Hòa was great”, “what do you remember about the group?”.\nIn DM: tell me what you can't eat, your budget, your area; “what do you know about me?”; “forget …”; “why did you skip …?”.",

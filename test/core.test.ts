@@ -11,7 +11,7 @@ const stored = (f: Fact, blob = "b"): StoredFact => ({ ...f, origin: "walrus", b
 
 describe("codec", () => {
   test("round-trips a fact with attrs, quote and tier", () => {
-    const f: Fact = { kind: "allergy", tier: "discreet", key: "allergy:shellfish", text: "Allergic to shellfish — must avoid it.", attrs: { avoid: "shellfish" }, quote: "mình dị ứng tôm | cua", source: "dm", at: at(1) };
+    const f: Fact = { kind: "allergy", tier: "discreet", key: "allergy:shellfish", text: "Allergic to shellfish. Must avoid it.", attrs: { avoid: "shellfish" }, quote: "mình dị ứng tôm | cua", source: "dm", at: at(1) };
     const d = decodeFact(encodeFact(f))!;
     expect(d.kind).toBe("allergy");
     expect(d.tier).toBe("discreet");

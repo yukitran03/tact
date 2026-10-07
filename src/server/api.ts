@@ -1,4 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { App } from "../app";
 import type { Member, Tier } from "../core/types";
 import { publicFactView, type StoredPlan } from "../core/engine";
@@ -102,6 +104,22 @@ export function createApi(app: App) {
           : ledger.db.query("SELECT id FROM members WHERE demo = 1 ORDER BY created_at LIMIT 1").get()) as { id: string } | null;
       if (!row) return bad(404, "no such demo persona");
       return new Response(null, { status: 302, headers: { location: "/", "set-cookie": sessionCookie(secret, row.id) } });
+    }
+
+    // Public numbers for the landing page: what is on Walrus now, and the latest live eval.
+    if (p === "/api/public") {
+      const id = await app.backend.identity().catch(() => null);
+      const stats = ledger.stats() as any;
+      return json({
+        memory: app.backend.kind,
+        accountId: id?.accountId ?? null,
+        agentId: id?.agentId ?? null,
+        model: app.llm.label,
+        memoriesOnWalrus: stats.memoriesOnWalrus,
+        peopleWithTenPlus: (stats.perMember as any[]).filter((m) => m.stored >= 10).length,
+        sampleBlob: (ledger.db.query("SELECT blob_id FROM memories WHERE status = 'done' AND blob_id IS NOT NULL ORDER BY updated_at DESC LIMIT 1").get() as any)?.blob_id ?? null,
+        eval: latestEval(),
+      });
     }
 
     if (p === "/api/demo/personas") {
@@ -231,4 +249,17 @@ export function createApi(app: App) {
 
     return bad(404, "unknown endpoint");
   };
+}
+
+/** The newest docs/evidence/eval-*-live.json summary, so the landing page shows measured numbers, not copy. */
+function latestEval(): unknown {
+  try {
+    const dir = join(import.meta.dir, "..", "..", "docs", "evidence");
+    const file = readdirSync(dir).filter((f) => /^eval-.*-live\.json$/.test(f)).sort().pop();
+    if (!file) return null;
+    const d = JSON.parse(readFileSync(join(dir, file), "utf8"));
+    return { when: d.summary.when, source: d.summary.source, model: d.summary.model, people: d.summary.people, places: d.summary.places, plans: d.plans.length, probes: d.probes.length, totals: d.summary.totals, example: d.probes.find((x: any) => /allergic to anything/i.test(x.probe)) ?? null };
+  } catch {
+    return null;
+  }
 }

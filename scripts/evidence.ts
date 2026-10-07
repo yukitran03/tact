@@ -30,10 +30,10 @@ const turns = q(`SELECT intent, COUNT(*) n FROM turn_log GROUP BY intent ORDER B
 const tenPlus = people.filter((p) => p.stored >= 10);
 
 const lines = [
-  `# Tact evidence — ${new Date().toISOString()}`,
+  `# Tact evidence, ${new Date().toISOString()}`,
   "",
   `- Relayer: ${id.serverUrl} (${app.backend.kind})`,
-  `- MemWalAccount: \`${id.accountId}\` — https://suiscan.xyz/mainnet/object/${id.accountId}`,
+  `- MemWalAccount: \`${id.accountId}\`, https://suiscan.xyz/mainnet/object/${id.accountId}`,
   `- MEMWAL_AGENT_ID (delegate public key): \`${id.agentId}\``,
   `- Memories confirmed on Walrus: **${stats.memoriesOnWalrus}** · in flight: ${stats.memoriesInFlight} · failed: ${stats.memoriesFailed}`,
   `- People with 10+ memories: **${tenPlus.length}** (${tenPlus.map((p) => `${p.name}${p.demo ? " [demo persona]" : ""}`).join(", ") || "none"})`,
@@ -48,7 +48,7 @@ const lines = [
   ...groups.map((g) => `- ${g.name}${g.demo ? " (demo)" : ""}: ${g.stored} memories`),
   "",
   "## Latest blobs",
-  ...samples.map((s) => `- ${s.name} · ${s.kind} · ${s.tier} — https://walruscan.com/mainnet/blob/${s.blob}`),
+  ...samples.map((s) => `- ${s.name} · ${s.kind} · ${s.tier}: https://walruscan.com/mainnet/blob/${s.blob}`),
   "",
   "## Shield",
   ...shield.map((s) => `- ${s.action}: ${s.n}`),

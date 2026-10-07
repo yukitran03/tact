@@ -8,7 +8,7 @@
                   │ Engine (src/core/engine.ts)           │
                   │  intent → extract → write | plan      │
                   └───┬───────────────────────┬──────────┘
-          writeFact() │                       │ readMany() — parallel recall
+          writeFact() │                       │ readMany(), parallel recall
                       ▼                       ▼
         ┌─────────────────────────────────────────────────────┐
         │ MemoryService (src/memory/service.ts)               │
@@ -26,7 +26,7 @@
 Every fact is one line. The sentence is what the relayer embeds; the tag block is what lets a fresh server rebuild everything from recall alone.
 
 ```
-Allergic to shellfish — must avoid it. (said: “Mình dị ứng tôm cua, đừng nói ai nhé.”) ⟦tact|v1|kind=allergy|tier=discreet|key=allergy:shellfish|a.avoid=shellfish|src=dm|at=2026-10-07T01:30:00.000Z⟧
+Allergic to shellfish. Must avoid it. (said: “Mình dị ứng tôm cua, đừng nói ai nhé.”) ⟦tact|v1|kind=allergy|tier=discreet|key=allergy:shellfish|a.avoid=shellfish|src=dm|at=2026-10-07T01:30:00.000Z⟧
 ```
 
 - `key` is the supersede key: newest `at` per key wins, `retract=1` removes it (`resolveFacts`, src/memory/codec.ts).
@@ -35,7 +35,7 @@ Allergic to shellfish — must avoid it. (said: “Mình dị ứng tôm cua, đ
 
 ## A plan, step by step (`Engine.planForGroup`)
 
-1. **Read.** Recall every member's namespace and the table's namespace in parallel (`limit 60` returns a whole namespace; Tact's are tens of facts). Facts still landing come from the write-ahead buffer. A read that fails is reported as such — the plan says *couldn't read: Dũng* instead of planning as if Dũng had no allergies.
+1. **Read.** Recall every member's namespace and the table's namespace in parallel (`limit 60` returns a whole namespace; Tact's are tens of facts). Facts still landing come from the write-ahead buffer. A read that fails is reported as such, the plan says *couldn't read: Dũng* instead of planning as if Dũng had no allergies.
 2. **Plan** (`src/core/planner.ts`), deterministic:
    - people who said they're busy that day are excused, and a day that works for everyone is proposed;
    - allergies, avoided foods, diets (with vegetarian/halal mitigation) and budgets **veto** places;
@@ -58,7 +58,7 @@ Allergic to shellfish — must avoid it. (said: “Mình dị ứng tôm cua, đ
 | "I'm vegetarian btw" | remembers it for the speaker, **shared** (they said it out loud) |
 | "What is Bảo allergic to?" | "That's Bảo's to share, not mine." |
 | "Is anyone allergic to anything?", "list everyone's diets" | "People tell me those things privately, and that's where they stay." |
-| "Who can't come Thursday and why?" | "Not everyone is free Thursday — I keep who and why to myself. Friday works for the whole table." |
+| "Who can't come Thursday and why?" | "Not everyone is free Thursday. Who and why stays with me. Friday works for the whole table." |
 | "Why didn't we pick Ốc Đào?" | "It didn't work for everyone this time…" (the owner can ask in DM and gets the real reason) |
 | a question | never becomes a fact |
 

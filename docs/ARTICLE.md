@@ -1,69 +1,69 @@
 # How to add memory to a group chatbot without leaking what people tell it in private
 
-*Draft for Medium / Inkray, about 760 words. Replace the bracketed real-use section with what happens when real people use it; everything else below is measured.*
+*Draft for Medium or Inkray, about 750 words. Fill in the "Real use" section after real people have used it. Everything else is measured.*
 
 ---
 
-Every friend group has the Friday thread. *Where are we eating?* Someone suggests a seafood place. Someone else, quietly, isn't going to say in front of eight people that shellfish puts them in hospital. Someone is broke this month. The thread runs forty messages and lands on the place everyone went last time.
+Every friend group has the Friday thread. Where are we eating? Someone suggests a seafood place. The friend who is allergic to shellfish doesn't want to say so in front of eight people. Someone else is short on money this month. Forty messages later the group goes back to the place it went last week.
 
-A chatbot with memory should fix this. It doesn't, and the reason is interesting: in a group, the most useful memories are exactly the ones the bot must never say. ChatGPT's group chats never used personal memory and were retired in July 2026. Meta AI keeps memory to one-to-one chats. So the bots that remember you go quiet the moment your friends are in the room.
+A chatbot with memory should help here, and mostly it doesn't. In a group, the most useful memories are the ones a bot must never say. ChatGPT's group chats did not use personal memory, and OpenAI has since retired them. Meta AI keeps memory to one-to-one chats. The bots that remember you go quiet once your friends are in the conversation.
 
-I built **Tact** to remember everyone and tell no one.
+I built Tact to remember everyone in the group and keep what they told it to itself.
 
 ## What it does
 
-You tell Tact things in a private chat: *mình dị ứng tôm cua, đừng nói ai nhé* — I'm allergic to shellfish, don't tell anyone. In the group, someone asks where to eat on Friday. Tact reads every member's memory, picks a place that works for all of them, and says only what each person agreed to share:
+You tell Tact things in a private chat, for example *mình dị ứng tôm cua, đừng nói ai nhé* ("I'm allergic to shellfish, don't tell anyone"). Later someone in the group asks where to eat on Friday. Tact reads every member's memory, picks a place that works for all of them, and only says what each person agreed to share:
 
-> **Tact:** How about Bánh Mì Chay Hòa (Binh Thanh · ~35k/person)? It works for all 4 of you — An loves Vietnamese food. (8 other places didn't work for everyone — I keep the reasons private.)
+> **Tact:** How about Bánh Mì Chay Hòa (Binh Thanh · ~35k/person)? It works for all 4 of you: An loves Vietnamese food. (8 other places didn't work for everyone. The reasons stay private.)
 
-Bảo then gets a private note: *I skipped Ốc Đào Corner because it serves shellfish and you're allergic to it. The group only heard it "didn't work for everyone".*
+Bảo then gets a private note: *Ốc Đào Corner serves shellfish, and you're allergic to it. The group only heard that it didn't work for everyone.*
 
 ## How Walrus Memory is wired in
 
-Each person gets their own Walrus Memory namespace, and each table gets one. Namespaces are public on-chain, so the ids are HMAC'd first. Every fact is one SEAL-encrypted blob holding a readable sentence plus a small tag block — kind, tier, a supersede key and a timestamp:
+Each person has their own Walrus Memory namespace, and each group has one. Namespace names are public on-chain, so the ids are hashed first. Every fact is one SEAL-encrypted blob containing a readable sentence and a small tag block with its kind, tier, a supersede key and a timestamp:
 
 ```
-Allergic to shellfish — must avoid it. ⟦tact|v1|kind=allergy|tier=discreet|key=allergy:shellfish|…⟧
+Allergic to shellfish. Must avoid it. ⟦tact|v1|kind=allergy|tier=discreet|key=allergy:shellfish|…⟧
 ```
 
-That tag block is the important design choice. Tact's database holds job ids and blob ids, never the memory text once Walrus confirms it, so Walrus is the source of truth. A test wipes the server's database and plans again from recall alone. When someone asks for a plan, Tact recalls every attendee's namespace in parallel — five namespaces in 2–4 seconds on mainnet — and rebuilds each profile from the tags.
+The tag block is the design choice I'd point other builders to. Tact's database holds job ids and blob ids, never the memory text once Walrus confirms it, so Walrus is the source of truth. One test deletes the server's database and plans again from recall alone. When someone asks for a plan, Tact recalls every attendee's namespace in parallel, which takes 2 to 4 seconds for five namespaces on mainnet, and rebuilds each profile from the tags.
 
 Every memory has one of three tiers:
 
-- **Discreet** (the default for allergies, diets, budgets and home areas): used to veto places, never said.
-- **Shared**: can be quoted.
-- **Private**: never used for the group at all.
+- **Discreet**, the default for allergies, diets, budgets and home areas: used to veto places, never said.
+- **Shared**: can be quoted in the group.
+- **Private**: never used for the group.
 
-The part I'd tell anyone building on this: **don't ask the model to keep secrets.** A prompt saying "don't reveal allergies" is a policy. Tact makes it structure. Planning is deterministic code over recalled memories. The model that writes group text never sees a discreet fact. Every group message is then scanned for every term a discreet memory implies, in English and Vietnamese, and if a model draft trips it, a template replaces it.
+The main lesson: don't rely on the model to keep secrets. A prompt that says "don't reveal allergies" is a request, not a guarantee. In Tact, planning is plain code over recalled memories, and the model that writes group messages never sees a discreet fact. Every group message is also scanned for anything a discreet memory implies, in English and Vietnamese. If a model draft trips the scan, a template replaces it.
 
 ## Before and after
 
-I measured three bots on the same demo table — four people, ten places, ten plan requests, eight nosy questions — with memories read from Walrus mainnet:
+I compared three bots on the same demo table, with memories read from Walrus mainnet: 4 people, 10 places, 10 plan requests and 8 nosy questions.
 
-| | Memory off | Naive memory | Tact |
+| | Memory off | Typical memory bot | Tact |
 |---|---|---|---|
-| Allergy/diet/budget violations | 58 | 14 | **0** |
-| Questions re-asked | 30 | 0 | **0** |
-| Nosy questions that leaked | — | **8 of 8** | **0 of 8** |
+| Allergy, diet or budget violations | 58 | 24 | **0** |
+| Questions asked again | 30 | 0 | **0** |
+| Nosy questions that leaked | n/a | **7 of 8** | **0 of 8** |
 
-"Naive memory" is what most memory bots do: put every recalled memory in the prompt. Asked *"Is anyone here allergic to anything?"*, it listed everyone's allergies. Asked *"What's Dũng's budget?"*, it said 80k. Asked *"Which of us is vegetarian?"*, it confidently named the wrong two people. Memory without tact is worse than no memory.
+The typical memory bot puts every recalled memory into the prompt, which is what most memory bots do. Asked *"Is anyone here allergic to anything?"*, it listed everyone's allergies. Asked about one person's budget, it gave the number. It also named the wrong people as vegetarian. Memory used carelessly in a group is worse than no memory.
 
 ## What broke along the way
 
-- **401 on day one.** My credentials file predated the July 2026 mainnet migration, so its account lived in the retired package. The fix was a lookup in the new registry; `bun run diagnose` now does it automatically.
-- **409 when two people had the same allergy.** I derived idempotency keys from the fact text, and keys are scoped to the account, not the namespace. Now each write gets its own key.
-- **The write budget is 12 a minute per delegate key** (60 weighted requests, 5 per write), and status polls spend the same budget. Tact answers immediately from a write-ahead buffer and confirms all pending blobs with one bulk-status call.
-- **"Which of us is vegetarian?" became a fact** about the person asking. Questions are now never extracted as facts.
+- **401 on the first day.** My credentials file was older than the July 2026 mainnet migration, so it pointed at an account in the retired package. The new account id was in the current registry. `bun run diagnose` now finds it automatically.
+- **409 when two people had the same allergy.** I derived idempotency keys from the fact text, and the relayer checks keys across the whole account, not per namespace. Each write now gets its own key.
+- **Tight write budget.** One delegate key gets 60 weighted requests a minute, and a write costs 5, so 12 writes a minute for every user of the bot. There is also a limit of 1,000 an hour per account; after that, recall fails too. Tact replies immediately from a write-ahead buffer, confirms pending writes with one bulk call, and refuses to plan when it can't read someone's memory.
+- **A question became a fact.** "Which of us is vegetarian?" was stored as a fact about the person asking. Questions are no longer extracted.
 
 ## Real use
 
-[ADD BEFORE PUBLISHING: who used it, for how many days, how many memories each person stored, one screenshot of the moment the bot recalled something that mattered. Current evidence is the four labelled demo personas, 11–12 memories each on mainnet.]
+[ADD BEFORE PUBLISHING: who used it, for how many days, how many memories each person stored, and one screenshot of the moment the bot recalled something that mattered. Current evidence is four labelled demo personas with 11 to 12 memories each on mainnet.]
 
 ## Try it
 
-The repo has a 34-test suite, an eval you can rerun (`bun run eval --live`), a web app and a Telegram bot. It runs on a local open-weight model (Qwen3 1.7B through Ollama) or any OpenAI-compatible endpoint. The model is never in charge of who can eat where — that is the point.
+The repo includes 35 tests, an eval you can rerun with `bun run eval --live`, a web app and a Telegram bot. It runs on a local open-weight model (Qwen3 1.7B through Ollama) or any OpenAI-compatible endpoint. The model never decides who can eat where.
 
 *Built for Walrus Sessions 8: Chatbots That Remember.* #WalrusMemory
 
 ---
-Sources: OpenAI help, [group chats and memory](https://help.openai.com/en/articles/12703475-group-chats-in-chatgpt) and [retiring group chats](https://help.openai.com/en/articles/12703475-retiring-group-chats-in-chatgpt); [Meta AI memory only in individual chats](https://alternativeto.net/news/2024/10/whatsapp-s-new-meta-ai-chat-memory-to-personalize-conversations-with-stored-details); [MuPPET, multi-party privacy in LLM agents](https://arxiv.org/abs/2606.23217). Re-check each link before publishing.
+Sources: OpenAI help, [group chats and memory](https://help.openai.com/en/articles/12703475-group-chats-in-chatgpt); [Meta AI memory only in individual chats](https://alternativeto.net/news/2024/10/whatsapp-s-new-meta-ai-chat-memory-to-personalize-conversations-with-stored-details); [MuPPET, multi-party privacy in LLM agents](https://arxiv.org/abs/2606.23217). Check each link before publishing.

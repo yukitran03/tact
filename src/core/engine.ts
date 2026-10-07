@@ -81,7 +81,7 @@ export class Engine {
         : await this.handleGroup(member, this.ledger.group(msg.roomId)!, msg.text, lang, msg.addressed ?? true);
     } catch (err) {
       console.error("[engine]", err);
-      result = { intent: "error", out: [{ roomType: msg.roomType, roomId: msg.roomId, text: lang === "vi" ? "Xin lỗi, mình gặp lỗi khi xử lý. Thử lại nhé." : "Sorry — something went wrong on my side. Try again?" }] };
+      result = { intent: "error", out: [{ roomType: msg.roomType, roomId: msg.roomId, text: lang === "vi" ? "Xin lỗi, mình gặp lỗi khi xử lý. Thử lại nhé." : "Sorry, something went wrong on my side. Try again?" }] };
     }
     for (const o of result.out) {
       const saved = this.ledger.addMessage({ roomType: o.roomType, roomId: o.roomId, memberId: null, role: "bot", text: o.text, meta: o.meta });
@@ -138,8 +138,8 @@ export class Engine {
     return {
       intent: "forget", written: 1,
       out: [room(lang === "vi"
-        ? `Đã gỡ: “${target.text}”. Từ giờ mình không dùng nó nữa. Bản mã hoá cũ vẫn nằm trên Walrus đến hết thời hạn lưu trữ — Walrus Memory chưa cho phép xoá hẳn bằng khoá delegate, nên mình ghi một bản “gỡ bỏ” đè lên.`
-        : `Retracted: “${target.text}”. I won't use it again. The old encrypted blob stays on Walrus until its storage expires — Walrus Memory has no hard delete for a delegate key, so I write a retraction that supersedes it.`)],
+        ? `Đã gỡ: “${target.text}”. Từ giờ mình không dùng nó nữa. Bản mã hoá cũ vẫn nằm trên Walrus đến hết thời hạn lưu trữ, vì Walrus Memory chưa cho khoá delegate xoá hẳn. Mình ghi một bản “gỡ bỏ” đè lên.`
+        : `Retracted: “${target.text}”. I won't use it again. The old encrypted blob stays on Walrus until its storage expires, because a delegate key can't hard-delete. I wrote a retraction that supersedes it.`)],
     };
   }
 
@@ -176,7 +176,7 @@ export class Engine {
     }
     const lines = lines0.map((line) => {
       const i = mine.find((x) => (x.you ?? x.detail) === line)!;
-      return `• ${line}${i.blobId ? ` (memory \`${i.blobId.slice(0, 8)}\`)` : ""} — ${i.tier === "shared" ? (lang === "vi" ? "công khai" : "shared") : (lang === "vi" ? "nhóm không được biết" : "the group was not told")}`;
+      return `• ${line}${i.blobId ? ` (memory \`${i.blobId.slice(0, 8)}\`)` : ""}. ${i.tier === "shared" ? (lang === "vi" ? "Công khai." : "Shared.") : (lang === "vi" ? "Nhóm không được biết." : "The group was not told.")}`;
     });
     return { intent: "why", used: mine.length, out: [room((lang === "vi" ? "Đây là phần của bạn trong quyết định đó:\n" : "Here's how your memories shaped that plan:\n") + lines.join("\n"))] };
   }
@@ -236,6 +236,12 @@ export class Engine {
     if (has(cleaned, RE.why)) return { intent: "why-group", out: [room(T.whyNot(lang))] };
 
     const members = this.ledger.groupMembers(group.id);
+    // Asking about yourself in the group gets a pointer to the private chat, where the full list lives.
+    if (mentionsName(cleaned, member.displayName) && has(cleaned, RE.aboutMember) && !members.some((m) => m.id !== member.id && mentionsName(cleaned, m.displayName))) {
+      return { intent: "about-self", out: [room(lang === "vi"
+        ? `${member.displayName} ơi, nhắn riêng “bạn biết gì về mình?” để xem mọi điều mình nhớ về bạn. Trong nhóm mình chỉ nói những gì bạn cho phép.`
+        : `${member.displayName}, ask me privately (“what do you know about me?”) to see everything I remember about you. In the group I only say what you've made shared.`)] };
+    }
     const named = members.find((m) => m.id !== member.id && mentionsName(cleaned, m.displayName));
     if (named && has(cleaned, RE.aboutMember)) {
       // A question about someone's allergies, diet or budget gets a refusal, not a list of their likes.
@@ -257,7 +263,7 @@ export class Engine {
       const verdicts = g.facts.filter((f) => f.kind === "verdict");
       const lines = [
         lang === "vi" ? `Nhóm có ${venues.length} quán trong trí nhớ chung:` : `This table's shared memory has ${venues.length} place(s):`,
-        ...venues.map((v) => `• ${v.name}${v.area ? ` — ${v.area}` : ""}`),
+        ...venues.map((v) => `• ${v.name}${v.area ? `, ${v.area}` : ""}`),
         ...(verdicts.length ? [lang === "vi" ? "Nhận xét:" : "Verdicts:", ...verdicts.map((v) => `• ${v.text}`)] : []),
         lang === "vi" ? "\n(Điều mỗi người nói riêng với mình thì không nằm ở đây.)" : "\n(What each of you told me privately isn't listed here.)",
       ];
@@ -270,7 +276,7 @@ export class Engine {
     const verdict = extractVerdict(cleaned, venuesFrom(g.facts).map((v) => ({ slug: v.slug, name: v.name })), member.displayName);
     if (verdict) {
       await this.memory.writeFact(groupRef, verdict);
-      return { intent: "verdict", written: 1, out: [room(lang === "vi" ? "Đã ghi nhận xét — lần sau mình sẽ tính đến." : "Noted — I'll factor that in next time.", { type: "verdict" })] };
+      return { intent: "verdict", written: 1, out: [room(lang === "vi" ? "Đã ghi nhận xét, lần sau mình sẽ tính đến." : "Noted. I'll factor that in next time.", { type: "verdict" })] };
     }
 
     // Said out loud in the group, so it is shared by definition.
@@ -279,7 +285,7 @@ export class Engine {
       for (const f of facts) await this.memory.writeFact({ type: "member", id: member.id }, f);
       return {
         intent: "remember-group", written: facts.length,
-        out: [room(lang === "vi" ? `📝 Đã nhớ cho ${member.displayName} (công khai, vì bạn nói trong nhóm).` : `📝 Noted for ${member.displayName} (shared, since you said it here).`, { type: "remembered", facts: facts.map(publicFactView) })],
+        out: [room(lang === "vi" ? `Đã nhớ cho ${member.displayName} (công khai, vì bạn nói trong nhóm).` : `Noted for ${member.displayName}. It's shared, since you said it here.`, { type: "remembered", facts: facts.map(publicFactView) })],
       };
     }
 
@@ -298,7 +304,7 @@ export class Engine {
     };
   }
 
-  /** "Who can't come Thursday?" — answered with a count and a better day, never with names. */
+  /** "Who can't come Thursday?" is answered with a count and a better day, never with names. */
   private async availabilityForGroup(group: Group, text: string, lang: Lang) {
     const members = this.ledger.groupMembers(group.id);
     const reads = await this.memory.readMany(members.map((m) => ({ type: "member" as const, id: m.id })));
@@ -332,8 +338,8 @@ export class Engine {
       return {
         intent: "plan-unreadable",
         out: [room(lang === "vi"
-          ? "Mình chưa đọc được trí nhớ của nhóm trên Walrus lúc này, nên mình không đoán bừa — một kế hoạch bỏ qua dị ứng của ai đó còn tệ hơn không có kế hoạch. Thử lại sau vài phút nhé."
-          : "I can't reach the table's memory on Walrus right now, so I won't guess — a plan that ignores someone's allergy is worse than no plan. Try again in a few minutes.",
+          ? "Mình chưa đọc được trí nhớ của nhóm trên Walrus lúc này nên sẽ không đoán. Một kế hoạch bỏ qua dị ứng của ai đó còn tệ hơn không có kế hoạch. Thử lại sau vài phút nhé."
+          : "I can't reach the table's memory on Walrus right now, so I won't guess. A plan that ignores someone's allergy is worse than no plan. Try again in a few minutes.",
         { type: "plan-unavailable", error: groupRead.error ?? attendees.find((a) => !a.readOk)?.name })],
       };
     }
@@ -391,8 +397,8 @@ export class Engine {
       out.push({
         roomType: "dm", roomId: memberId,
         text: lang === "vi"
-          ? `🔒 Về kế hoạch ở “${where}”: mình đã âm thầm dùng ghi nhớ của bạn —\n${details.map((d) => `• ${d}`).join("\n")}\nNhóm chỉ được biết là “chưa hợp với tất cả”.`
-          : `🔒 About the plan in “${where}”: I quietly used your memories —\n${details.map((d) => `• ${d}`).join("\n")}\nThe group only heard that it “didn't work for everyone”.`,
+          ? `Về kế hoạch ở “${where}”, mình đã dùng ghi nhớ của bạn:\n${details.map((d) => `• ${d}`).join("\n")}\nNhóm chỉ được biết là “chưa hợp với tất cả”.`
+          : `About the plan in “${where}”, here is how your memories were used:\n${details.map((d) => `• ${d}`).join("\n")}\nThe group only heard that it “didn't work for everyone”.`,
         meta: { type: "shield-note", planId: planRow.id },
       });
     }

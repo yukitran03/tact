@@ -83,6 +83,7 @@ const Icon = {
   table: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" /><circle cx="12" cy="3.5" r="1.6" fill="currentColor" /><circle cx="20.5" cy="12" r="1.6" fill="currentColor" /><circle cx="12" cy="20.5" r="1.6" fill="currentColor" /><circle cx="3.5" cy="12" r="1.6" fill="currentColor" /></svg>),
   db: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="7" ry="3" stroke="currentColor" stroke-width="2" /><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" stroke="currentColor" stroke-width="2" /></svg>),
   receipt: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /><path d="M9 8h6M9 12h6" stroke="currentColor" stroke-width="2" /></svg>),
+  check: () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>),
   x: () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>),
   plus: () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" /></svg>),
   chat: () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 5h16v11H9l-5 4V5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" /></svg>),
@@ -110,12 +111,64 @@ function useToast() {
 }
 
 // ── landing ────────────────────────────────────────────────────────
+interface PublicInfo {
+  memory: string;
+  accountId: string | null;
+  agentId: string | null;
+  model: string;
+  memoriesOnWalrus: number;
+  peopleWithTenPlus: number;
+  sampleBlob: string | null;
+  eval: null | {
+    when: string; source: string; model: string | null; people: number; places: number; plans: number; probes: number;
+    totals: { off: { violations: number; questions: number }; naive: { violations: number; plans: number; probes: number; probeLeaks: number }; tact: { violations: number; plans: number; probes: number; probeLeaks: number } };
+    example: { probe: string; tact: { text: string }; naive: { text: string } | null } | null;
+  };
+}
+
+const short = (id: string, a = 6, b = 4) => `${id.slice(0, a)}…${id.slice(-b)}`;
+
+function TwoViews() {
+  return (
+    <div class="views" aria-label="The same Friday plan, seen by the group and by Bảo">
+      <div class="view">
+        <div class="view-head"><Icon.table /> In the group</div>
+        <div class="view-body">
+          <div class="vb-msg"><span class="avatar sm" style={{ background: "#2f6f4f" }}>C</span><div class="vb-bubble">Where should we eat Friday?</div></div>
+          <div class="vb-plan">
+            <div class="vb-kicker">Tact's pick</div>
+            <div class="vb-venue">Bánh Mì Chay Hòa</div>
+            <div class="vb-meta">Binh Thanh · ~35k/person · works for all 4</div>
+            <div class="vb-chips"><span class="chip ok"><Icon.db /> Read from Walrus</span><span class="chip discreet"><Icon.shield /> 0 private details shared</span></div>
+            <p class="vb-note">8 other places didn't work for everyone. The reasons stay private.</p>
+          </div>
+        </div>
+      </div>
+      <div class="view private">
+        <div class="view-head"><Icon.lock /> Only Bảo sees</div>
+        <div class="view-body">
+          <div class="vb-msg me"><div class="vb-bubble me">Mình dị ứng tôm cua, đừng nói ai nhé.</div></div>
+          <div class="vb-saved"><span>Allergic to shellfish</span><span class="chip discreet">Discreet</span><span class="chip blob">7thUbv…CtDk</span></div>
+          <div class="vb-shield">
+            <div class="vb-kicker discreet">About Friday's plan</div>
+            Ốc Đào Corner serves shellfish, and you're allergic to it. The group only heard that it didn't work for everyone.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Landing({ onSession, health }: { onSession: () => void; health: Health | null }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [demo, setDemo] = useState<{ personas: { id: string; name: string }[]; group: { id: string; name: string } | null } | null>(null);
+  const [info, setInfo] = useState<PublicInfo | null>(null);
+  const [demo, setDemo] = useState<{ personas: { id: string; name: string }[] } | null>(null);
   const { theme, cycle } = useTheme();
-  useEffect(() => { api("/api/demo/personas").then(setDemo).catch(() => setDemo(null)); }, []);
+  useEffect(() => {
+    api<PublicInfo>("/api/public").then(setInfo).catch(() => setInfo(null));
+    api("/api/demo/personas").then(setDemo).catch(() => setDemo(null));
+  }, []);
 
   const start = async (e: Event) => {
     e.preventDefault();
@@ -123,85 +176,161 @@ function Landing({ onSession, health }: { onSession: () => void; health: Health 
     setBusy(true);
     try { await api("/api/session", { body: { name } }); onSession(); } finally { setBusy(false); }
   };
-  const tryDemo = async () => {
-    if (!demo?.personas.length) return;
+  const openDemo = async (memberId?: string) => {
+    const id = memberId ?? demo?.personas[0]?.id;
+    if (!id) return;
     setBusy(true);
-    try { await api("/api/demo/as", { body: { memberId: demo.personas[0].id } }); onSession(); } finally { setBusy(false); }
+    try { await api("/api/demo/as", { body: { memberId: id } }); onSession(); } finally { setBusy(false); }
   };
 
+  const ev = info?.eval;
+  const t = ev?.totals;
+  const onWalrus = info?.memory === "walrus";
+
   return (
-    <div class="landing">
-      <nav class="landing-nav">
-        <div class="brand"><Icon.mark />Tact</div>
-        <button class="btn ghost sm" onClick={cycle} title={`Theme: ${theme}`}><Icon.sun /> {theme}</button>
-      </nav>
-      <section class="hero">
-        <div>
-          <h1>Remembers everyone.<br /><em>Tells no one.</em></h1>
-          <p class="lede">
-            Tact is a group-chat bot with party-aware memory. Tell it privately that you're allergic to shrimp or watching your budget —
-            it quietly plans around you, and never says why. Every memory lives encrypted in your own namespace on Walrus.
-          </p>
-          <div class="hero-actions">
-            {demo?.personas.length ? (
-              <button class="btn primary" onClick={tryDemo} disabled={busy}>Open the live demo table</button>
-            ) : null}
-            <form class="start-panel" onSubmit={start}>
-              <input class="input" placeholder="Your name" value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} aria-label="Your name" />
-              <button class="btn" type="submit" disabled={busy || !name.trim()}>Start a table</button>
-            </form>
-          </div>
-          {demo?.personas.length ? <p class="faint" style={{ fontSize: "12.5px", marginTop: "10px" }}>The demo table uses {demo.personas.length} clearly labelled demo personas whose memories are real blobs on Walrus mainnet.</p> : null}
+    <div class="lp">
+      <header class="lp-nav">
+        <a class="brand" href="/" aria-label="Tact home"><Icon.mark />Tact</a>
+        <nav class="lp-links" aria-label="Sections">
+          <a href="#how">How it works</a>
+          <a href="#results">Results</a>
+          <a href="#walrus">On Walrus</a>
+        </nav>
+        <div class="lp-nav-actions">
+          <button class="icon-btn lg" onClick={cycle} aria-label={`Color theme: ${theme}`} title={`Theme: ${theme}`}><Icon.sun /></button>
+          <button class="btn primary" onClick={() => openDemo()} disabled={busy || !demo?.personas.length}>Open the demo</button>
         </div>
-        <div class="hero-card" aria-hidden="true">
-          <div class="hc-label">Bảo → Tact, privately</div>
-          <div class="hc-row"><div class="hc-bubble private">Mình dị ứng tôm cua nha, đừng nói ai 🙏</div></div>
-          <div class="hc-label">In the group, three days later</div>
-          <div class="hc-row"><div class="hc-bubble">Thứ 6 đi ăn đâu mọi người?</div></div>
-          <div class="hc-plan">
-            <div class="pc-kicker" style={{ color: "var(--accent)", fontSize: "11px", fontWeight: 700, letterSpacing: ".09em", textTransform: "uppercase" }}>Tact's pick</div>
-            <div class="venue">Phở Hòa</div>
-            <div class="muted" style={{ fontSize: "13px" }}>District 3 · ~70k/person · works for all 4</div>
-            <div style={{ display: "flex", gap: "6px", marginTop: "10px", flexWrap: "wrap" }}>
-              <span class="chip ok"><Icon.db /> 11 memories from Walrus</span>
-              <span class="chip discreet"><Icon.shield /> 0 private details shared</span>
+      </header>
+
+      <main>
+        <section class="lp-hero">
+          <div class="lp-hero-copy">
+            <p class="eyebrow"><span class={`dot ${onWalrus ? "live" : "off"}`} />{onWalrus ? "Running on Walrus Memory mainnet" : "Group chat memory on Walrus"}</p>
+            <h1>The group chat bot that remembers everyone and tells no one.</h1>
+            <p class="lede">
+              Tell Tact privately what you can't eat, what you can spend and which days you're busy.
+              When your group asks where to go, it picks a place that works for everyone and never says why.
+            </p>
+            <div class="cta-row">
+              <button class="btn primary lg" onClick={() => openDemo()} disabled={busy || !demo?.personas.length}>Open the live demo table</button>
+              <a class="btn lg" href="#start">Start your own table</a>
             </div>
+            <dl class="proof-row">
+              <div><dt>{info ? info.memoriesOnWalrus : "…"}</dt><dd>memories stored as encrypted blobs on Walrus</dd></div>
+              <div><dt>{t ? `${t.tact.probeLeaks} of ${t.tact.probes}` : "…"}</dt><dd>nosy questions that leaked a private detail</dd></div>
+              <div><dt>{t ? t.tact.violations : "…"}</dt><dd>plans that broke someone's allergy, diet or budget</dd></div>
+            </dl>
           </div>
-          <div class="hc-label">Only Bảo sees</div>
-          <div class="hc-row"><div class="hc-bubble private">🔒 I skipped Ốc Đào because of your shellfish allergy. The group only heard it “didn't work for everyone”.</div></div>
-        </div>
-      </section>
-      <section class="features">
-        <div class="feature">
-          <div class="ico" style={{ background: "var(--discreet-soft)", color: "var(--discreet)" }}><Icon.shield /></div>
-          <h3>Discreet by default</h3>
-          <p>Allergies, diets, budgets and home areas are used to veto places but never enter the text the group sees. Enforced in code, not in a prompt.</p>
-        </div>
-        <div class="feature">
-          <div class="ico" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}><Icon.db /></div>
-          <h3>Memory you can verify</h3>
-          <p>Each fact is a SEAL-encrypted blob in your own Walrus Memory namespace. Wipe Tact's server and it still remembers — everything is read back from Walrus.</p>
-        </div>
-        <div class="feature">
-          <div class="ico" style={{ background: "var(--shared-soft)", color: "var(--shared)" }}><Icon.receipt /></div>
-          <h3>Receipts, not vibes</h3>
-          <p>Every plan carries a receipt: how many memories were read, what was ruled out, and — for you alone — which of your memories changed the outcome.</p>
-        </div>
-      </section>
-      <section class="steps">
-        <h2>How a plan happens</h2>
-        <div class="step-row">
-          <div class="step"><b>1 · You tell Tact privately</b><span>“Allergic to shrimp”, “max 80k”, “busy Thursdays” — tiered discreet automatically.</span></div>
-          <div class="step"><b>2 · It lands on Walrus</b><span>One encrypted blob per fact, in a namespace only Tact's delegate key can read.</span></div>
-          <div class="step"><b>3 · The group asks</b><span>Tact recalls everyone's memory in parallel and plans in deterministic code.</span></div>
-          <div class="step"><b>4 · It speaks with tact</b><span>The group hears the pick. Each owner gets a private note on how their memory was used.</span></div>
-        </div>
-      </section>
-      <footer class="landing-foot">
-        <span><span class={`dot ${health?.memory.ok ? "live" : "warn"}`} /> {health ? (health.memory.mode === "walrus" ? "Walrus Memory · mainnet" : "Mock memory (offline)") : "…"}</span>
-        {health?.identity ? <span class="mono">account {health.identity.accountId.slice(0, 10)}…{health.identity.accountId.slice(-4)}</span> : null}
-        {health ? <span>Model: {health.llm.label}</span> : null}
-        <span style={{ marginLeft: "auto" }}>Built for Walrus Sessions 8 · Chatbots That Remember</span>
+          <TwoViews />
+        </section>
+
+        <section class="lp-problem" aria-labelledby="problem-h">
+          <h2 id="problem-h" class="sr-only">The problem</h2>
+          <div class="problem-grid">
+            <div><b>Group chats repeat themselves.</b><span>Every Friday someone asks who is vegetarian again, and the person with an allergy has to say it in front of everyone.</span></div>
+            <div><b>Memory bots overshare.</b><span>Put every memory in one prompt and the bot repeats private details the moment someone asks.</span></div>
+            <div><b>Big assistants opt out.</b><span>ChatGPT group chats did not use personal memory. Meta AI keeps memory to one-to-one chats.</span></div>
+          </div>
+        </section>
+
+        <section id="how" class="lp-section" aria-labelledby="how-h">
+          <div class="section-head">
+            <p class="kicker">How it works</p>
+            <h2 id="how-h">One private chat per person. One shared table.</h2>
+          </div>
+          <ol class="steps-grid">
+            <li><span class="step-ico"><Icon.lock /></span><b>Tell Tact privately</b><span>“Allergic to shrimp”, “max 80k”, “busy Thursdays”. Each is saved as discreet by default.</span></li>
+            <li><span class="step-ico"><Icon.db /></span><b>It lands on Walrus</b><span>One SEAL-encrypted blob per fact, in a namespace that belongs to you alone.</span></li>
+            <li><span class="step-ico"><Icon.table /></span><b>The group asks</b><span>Tact reads everyone's memory in parallel and plans in plain code: allergies and diets veto, likes score.</span></li>
+            <li><span class="step-ico"><Icon.shield /></span><b>The group gets the answer</b><span>The group hears the pick. Each person gets a private note on how their own memories were used.</span></li>
+          </ol>
+        </section>
+
+        <section id="results" class="lp-section" aria-labelledby="results-h">
+          <div class="section-head">
+            <p class="kicker">Results</p>
+            <h2 id="results-h">Same people, same places, three bots.</h2>
+            <p class="section-sub">{ev ? `${ev.people} people, ${ev.places} places, ${ev.plans} plan requests and ${ev.probes} nosy questions, with memories read from Walrus mainnet.` : "Memories read from Walrus mainnet."}</p>
+          </div>
+          <div class="table-wrap">
+            <table class="compare">
+              <thead>
+                <tr><th scope="col"><span class="sr-only">Measure</span></th><th scope="col">Memory off</th><th scope="col">Typical memory bot</th><th scope="col" class="us">Tact</th></tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">Allergy, diet or budget violations</th><td>{t ? t.off.violations : "…"}</td><td>{t ? t.naive.violations : "…"}</td><td class="us">{t ? t.tact.violations : "…"}</td></tr>
+                <tr><th scope="row">Questions asked again before planning</th><td>{t ? t.off.questions : "…"}</td><td>0</td><td class="us">0</td></tr>
+                <tr><th scope="row">Nosy questions that leaked</th><td class="na">knows nothing</td><td class="bad">{t ? `${t.naive.probeLeaks} of ${t.naive.probes}` : "…"}</td><td class="us">{t ? `${t.tact.probeLeaks} of ${t.tact.probes}` : "…"}</td></tr>
+              </tbody>
+            </table>
+          </div>
+          {ev?.example?.naive ? (
+            <div class="probe">
+              <div class="probe-q"><span class="avatar sm" style={{ background: "#2f6f4f" }}>C</span>“{ev.example.probe}”</div>
+              <div class="probe-a bad"><span class="probe-label"><Icon.x /> Typical memory bot</span>{ev.example.naive.text.trim()}</div>
+              <div class="probe-a good"><span class="probe-label"><Icon.check /> Tact</span>{ev.example.tact.text.trim()}</div>
+            </div>
+          ) : null}
+          <p class="footnote">
+            The typical memory bot is the same model with the same memories, all placed in one prompt. A leak is any private term (an allergen, a diet, a budget figure, a home area) found in text the group can see.
+            {ev ? ` Model: ${ev.model ?? "n/a"}. Measured ${new Date(ev.when).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}.` : ""} Reproduce with <code>bun run eval --live</code>.
+          </p>
+        </section>
+
+        <section id="tiers" class="lp-section" aria-labelledby="tiers-h">
+          <div class="section-head">
+            <p class="kicker">Privacy</p>
+            <h2 id="tiers-h">Every memory has a tier, and code enforces it.</h2>
+            <p class="section-sub">The model that writes group messages never sees a discreet fact. Every group message is also scanned for anything a discreet fact implies, in English and Vietnamese.</p>
+          </div>
+          <div class="tier-grid">
+            <div class="tier discreet"><span class="chip discreet">Discreet</span><b>Used to decide, never said.</b><span>The default for allergies, diets, budgets, home area and busy days.</span></div>
+            <div class="tier shared"><span class="chip shared">Shared</span><b>Fine to mention in the group.</b><span>Likes, and anything you said out loud in the group yourself.</span></div>
+            <div class="tier private"><span class="chip private">Private</span><b>Only for your own chat.</b><span>Never used for a group plan. Mark anything “don't use this”.</span></div>
+          </div>
+        </section>
+
+        <section id="walrus" class="lp-section split" aria-labelledby="walrus-h">
+          <div>
+            <p class="kicker">On Walrus</p>
+            <h2 id="walrus-h">Wipe the server and Tact still remembers.</h2>
+            <ul class="facts">
+              <li><Icon.check /><span>One namespace per person and one per table, with ids hashed because namespace names are public on-chain.</span></li>
+              <li><Icon.check /><span>Each fact is a readable sentence plus a small tag block, encrypted with SEAL into its own blob.</span></li>
+              <li><Icon.check /><span>Tact's database keeps job ids and blob ids, never the memory text, so every plan is rebuilt from Walrus.</span></li>
+              <li><Icon.check /><span>Corrections supersede older facts. A retraction is written instead of a silent edit.</span></li>
+            </ul>
+          </div>
+          <div class="receipt-card" aria-label="Live account details">
+            <div class="rc-row"><span>Network</span><b>{onWalrus ? "Walrus mainnet" : "Offline demo store"}</b></div>
+            <div class="rc-row"><span>Account</span>{info?.accountId ? <a class="mono" href={`https://suiscan.xyz/mainnet/object/${info.accountId}`} target="_blank" rel="noreferrer">{short(info.accountId, 8, 6)}</a> : <b>…</b>}</div>
+            <div class="rc-row"><span>Delegate key</span><b class="mono">{info?.agentId ? short(info.agentId, 8, 6) : "…"}</b></div>
+            <div class="rc-row"><span>Latest blob</span>{info?.sampleBlob ? <a class="mono" href={`https://walruscan.com/mainnet/blob/${info.sampleBlob}`} target="_blank" rel="noreferrer">{short(info.sampleBlob, 8, 6)}</a> : <b>…</b>}</div>
+            <div class="rc-row"><span>People with 10+ memories</span><b>{info ? info.peopleWithTenPlus : "…"}</b></div>
+            <div class="rc-row"><span>Model</span><b>{info?.model ?? health?.llm.label ?? "…"}</b></div>
+          </div>
+        </section>
+
+        <section id="start" class="lp-cta" aria-labelledby="start-h">
+          <h2 id="start-h">Try it with your own group.</h2>
+          <p>Start a table, share the six-letter code, and tell Tact your constraints in a private chat.</p>
+          <form class="start-panel" onSubmit={start}>
+            <label class="sr-only" for="start-name">Your name</label>
+            <input id="start-name" class="input lg" placeholder="Your name" value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} autocomplete="given-name" />
+            <button class="btn primary lg" type="submit" disabled={busy || !name.trim()}>Start a table</button>
+          </form>
+          {demo?.personas.length ? (
+            <p class="cta-alt">Or look through the demo table as {demo.personas.map((p, i) => (
+              <span key={p.id}>{i ? (i === demo.personas.length - 1 ? " or " : ", ") : ""}<button class="link" onClick={() => openDemo(p.id)}>{p.name}</button></span>
+            ))}. Demo people are labelled; their memories are real blobs on mainnet.</p>
+          ) : null}
+        </section>
+      </main>
+
+      <footer class="lp-foot">
+        <span class="brand sm"><Icon.mark />Tact</span>
+        <span>Built for Walrus Sessions 8, Chatbots That Remember.</span>
+        <span class="faint">Open source, MIT.</span>
       </footer>
     </div>
   );
@@ -265,7 +394,7 @@ function MessageView({ m, meId, names, onReceipt }: { m: Msg; meId: string; name
         <span class="bot-mark"><Icon.botMark /></span>
         <div class="stack">
           {t === "plan" ? <PlanCard m={m} onReceipt={onReceipt} /> : t === "shield-note" ? (
-            <div class="shield-note"><div class="k"><Icon.lock /> Only you can see this</div><div class="md" dangerouslySetInnerHTML={md(m.text.replace(/^🔒\s*/, ""))} /></div>
+            <div class="shield-note"><div class="k"><Icon.lock /> Only you can see this</div><div class="md" dangerouslySetInnerHTML={md(m.text)} /></div>
           ) : (
             <div class="bubble md">
               <div dangerouslySetInnerHTML={md(t === "remembered" ? m.text.split("\n")[0] : m.text)} />
@@ -347,13 +476,13 @@ function MemoryPanel({ refreshKey, toast }: { refreshKey: number; toast: (m: str
 
   const setTier = async (f: FactView, tier: Tier) => {
     await api("/api/memory/tier", { body: { key: f.key, tier } });
-    toast(`Now ${TIER_NAME[tier].toLowerCase()} — writing to Walrus`);
+    toast(`Now ${TIER_NAME[tier].toLowerCase()}. Writing to Walrus.`);
     await load(true);
   };
   const forget = async (f: FactView) => {
     if (!confirm(`Retract “${f.text}”? Tact stops using it. The encrypted blob stays on Walrus until its storage expires.`)) return;
     await api("/api/memory/forget", { body: { key: f.key } });
-    toast("Retracted — a superseding memory is being written");
+    toast("Retracted. A superseding memory is being written.");
     await load(true);
   };
   const rowFor = (f: FactView) => data?.rows.find((r) => r.key === f.key && (r.blobId === f.blobId || r.status !== "done"));
@@ -439,7 +568,7 @@ function ReceiptPanel({ planId }: { planId: string | null }) {
       {r.publicInfluences.length ? r.publicInfluences.slice(0, 12).map((i: any, k: number) => (
         <div class="receipt-row" key={k}><span class={`eff ${i.effect}`}>{i.effect}</span><div>{i.detail}</div></div>
       )) : <div class="explain">Everything else that shaped this plan was discreet, so it stays with its owners.</div>}
-      {r.ruledOut.length ? <><h4>Ruled out</h4><div class="explain">{r.ruledOut.map((x: any) => x.name).join(", ")} — reasons are private to the people they protect.</div></> : null}
+      {r.ruledOut.length ? <><h4>Ruled out</h4><div class="explain">{r.ruledOut.map((x: any) => x.name).join(", ")}. The reasons stay private to the people they protect.</div></> : null}
     </div>
   );
 }
@@ -449,7 +578,7 @@ function ShieldPanel({ refreshKey }: { refreshKey: number }) {
   useEffect(() => { api("/api/shield").then((d) => setEntries(d.entries)).catch(() => setEntries([])); }, [refreshKey]);
   return (
     <div class="panel">
-      <div class="explain">Every time one of your discreet memories changed a group decision, it's logged here — and only here. The group was told only that a place “didn't work for everyone”.</div>
+      <div class="explain">Every time one of your discreet memories changed a group decision, it's logged here and nowhere else. The group was told only that a place “didn't work for everyone”.</div>
       {entries.length ? entries.map((e) => (
         <div class="fact" key={e.id}>
           <div class="t">{e.detail}</div>
@@ -523,7 +652,7 @@ function Shell({ me, onLogout, health }: { me: Member; onLogout: () => void; hea
         const d = await api<{ messages: Msg[]; out: any[] }>(`/api/groups/${room.id}/messages`, { body: { text } });
         setMessages(d.messages);
         const notes = d.out.filter((o) => o.roomType === "dm");
-        if (notes.length) toast("🔒 Tact left you a private note about this plan");
+        if (notes.length) toast("Tact left you a private note about this plan.");
       } else {
         const d = await api<{ messages: Msg[] }>("/api/dm", { body: { text } });
         setMessages(d.messages);
@@ -582,7 +711,7 @@ function Shell({ me, onLogout, health }: { me: Member; onLogout: () => void; hea
         <div class="side-foot">
           {me.demo && personas.length ? (
             <div class="persona-switch">
-              <div style={{ fontSize: "12px", fontWeight: 700 }}>Demo persona — view the table as:</div>
+              <div style={{ fontSize: "12px", fontWeight: 700 }}>Demo persona. View the table as:</div>
               <div class="row">{personas.map((p) => <button key={p.id} class={p.id === me.id ? "on" : ""} onClick={() => switchPersona(p.id)}><Avatar id={p.id} name={p.name} />{p.name}</button>)}</div>
             </div>
           ) : null}
@@ -631,7 +760,7 @@ function Shell({ me, onLogout, health }: { me: Member; onLogout: () => void; hea
           {busy ? <div class="msg bot"><span class="bot-mark"><Icon.botMark /></span><div class="bubble"><span class="typing"><i /><i /><i /></span> <span class="muted" style={{ fontSize: "12.5px" }}>reading memory from Walrus…</span></div></div> : null}
         </div>
         <Composer
-          placeholder={room?.type === "dm" ? "Tell Tact something private…" : "Message the table — start with @tact to ask it anything"}
+          placeholder={room?.type === "dm" ? "Tell Tact something private…" : "Message the table. Start with @tact to ask it anything"}
           chips={room?.type === "dm" ? dmChips : groupChips}
           onSend={send}
           busy={busy}
