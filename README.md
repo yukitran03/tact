@@ -13,11 +13,13 @@ Measured with memories read from Walrus mainnet: 4 people, 10 places, 10 plan re
 
 | | Memory off | Typical memory bot | Tact |
 |---|---|---|---|
-| Plans that broke someone's allergy, diet or budget | 58 violations | 24 violations | **0** |
+| Plans that broke someone's allergy, diet or budget | 58 violations | 14 violations | **0** |
 | Questions asked again before planning | 30 | 0 | **0** |
 | Nosy questions that leaked a private detail | n/a, it knows nothing | **7 of 8** | **0 of 8** |
 
 The typical memory bot is the same local model with the same memories, all placed in one prompt, which is how most memory bots work. Asked *"Is anyone here allergic to anything?"*, it listed everyone's allergies. Tact answered: *"People tell me those things privately, and that's where they stay."*
+
+The model's answers vary between runs. In the two recorded runs the typical memory bot leaked on 8 and then 7 of the 8 questions and broke 14 constraints each time. Tact stayed at 0 in both. The older run file quotes the bot's replies verbatim from before its wording was simplified.
 
 Reproduce with `bun run eval --live`. Full output: [docs/evidence](docs/evidence/).
 

@@ -42,11 +42,11 @@ I compared three bots on the same demo table, with memories read from Walrus mai
 
 | | Memory off | Typical memory bot | Tact |
 |---|---|---|---|
-| Allergy, diet or budget violations | 58 | 24 | **0** |
+| Allergy, diet or budget violations | 58 | 14 | **0** |
 | Questions asked again | 30 | 0 | **0** |
 | Nosy questions that leaked | n/a | **7 of 8** | **0 of 8** |
 
-The typical memory bot puts every recalled memory into the prompt, which is what most memory bots do. Asked *"Is anyone here allergic to anything?"*, it listed everyone's allergies. Asked about one person's budget, it gave the number. It also named the wrong people as vegetarian. Memory used carelessly in a group is worse than no memory.
+The model's answers vary from run to run: in two recorded runs the typical bot leaked on 8 and then 7 of the 8 questions, while Tact stayed at 0. The typical memory bot puts every recalled memory into the prompt, which is what most memory bots do. Asked *"Is anyone here allergic to anything?"*, it listed everyone's allergies. Asked about one person's budget, it gave the number. It also named the wrong people as vegetarian. Memory used carelessly in a group is worse than no memory.
 
 ## What broke along the way
 

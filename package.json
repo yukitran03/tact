@@ -2,7 +2,7 @@
   "name": "tact",
   "version": "0.1.0",
   "private": true,
-  "description": "Tact — the group-chat bot that remembers everyone and tells no one. Party-aware memory on Walrus Memory.",
+  "description": "Tact: a group chat bot that remembers what each person tells it privately and plans for everyone without repeating it. Built on Walrus Memory.",
   "type": "module",
   "license": "MIT",
   "engines": {
