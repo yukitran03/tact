@@ -33,6 +33,8 @@ export interface PublicPlanContext {
   cuisineMiss?: string;
   /** People whose memory could not be read from Walrus this time; the plan must not claim to fit them. */
   unreadable: string[];
+  /** Set when the plan is for some of the table ("dinner with An and Bảo"). */
+  forNames?: string[];
 }
 
 export function publicContext(plan: PlanResult, lang: Lang): PublicPlanContext {
@@ -49,7 +51,7 @@ export function publicContext(plan: PlanResult, lang: Lang): PublicPlanContext {
     } : null,
     alternatives: plan.alternatives.map((a) => ({ name: a.venue.name, area: a.venue.area })),
     people: plan.attendees.length,
-    peopleWithoutMemory: plan.attendees.filter((a) => a.factCount === 0).map((a) => a.name),
+    peopleWithoutMemory: plan.attendees.filter((a) => a.factCount === 0).map((a) => a.name).sort((x, y) => x.localeCompare(y)),
     memoriesConsulted: plan.memoriesConsulted,
     ruledOutCount: plan.ruledOut.length,
     dayNote: plan.dayConflict ? { day: plan.dayConflict.day, alternativeDay: plan.dayConflict.alternativeDay, busyCount: plan.dayConflict.busyMemberIds.length } : undefined,
@@ -95,9 +97,10 @@ export function planTemplate(ctx: PublicPlanContext): string {
   const why = c.reasons.filter((r) => r !== "fits someone's taste").slice(0, 2);
   const tasteNote = c.reasons.includes("fits someone's taste");
   const checked = ctx.people - ctx.unreadable.length;
+  const forList = ctx.forNames?.length ? ctx.forNames.join(", ").replace(/, ([^,]*)$/, L(lang, " and $1", " và $1")) : null;
   lines.push(L(lang,
-    `It works for ${ctx.unreadable.length ? `the ${checked} of you I could check` : `all ${ctx.people} of you`}${why.length ? `: ${why.join(", ")}` : ""}${tasteNote ? (why.length ? ", and it fits someone's taste" : " and fits someone's taste") : ""}.`,
-    `Hợp với ${ctx.unreadable.length ? `${checked} người mình kiểm tra được` : `cả ${ctx.people} người`}${why.length ? `: ${why.join(", ")}` : ""}${tasteNote ? ", và hợp khẩu vị của một bạn trong nhóm" : ""}.`));
+    `It works for ${forList ?? (ctx.unreadable.length ? `the ${checked} of you I could check` : `all ${ctx.people} of you`)}${why.length ? `: ${why.join(", ")}` : ""}${tasteNote ? (why.length ? ", and it fits someone's taste" : " and fits someone's taste") : ""}.`,
+    `Hợp với ${forList ?? (ctx.unreadable.length ? `${checked} người mình kiểm tra được` : `cả ${ctx.people} người`)}${why.length ? `: ${why.join(", ")}` : ""}${tasteNote ? ", và hợp khẩu vị của một bạn trong nhóm" : ""}.`));
   if (ctx.unreadable.length) {
     lines.push(L(lang,
       `I couldn't reach ${ctx.unreadable.join(", ")}'s memory on Walrus just now, so I can't promise it fits them. Ask again in a few minutes.`,

@@ -112,7 +112,7 @@ const usable = (f: StoredFact) => f.tier !== "private";
  * can eat where: hard constraints veto, soft preferences score. That is what
  * makes memory necessary: with no memory, every veto below disappears.
  */
-export function plan(req: PlanRequest, attendees: Attendee[], groupFacts: StoredFact[], opts: { lastVenueSlug?: string } = {}): PlanResult {
+export function plan(req: PlanRequest, attendees: Attendee[], groupFacts: StoredFact[], opts: { lastVenueSlug?: string; recentVenueSlugs?: string[] } = {}): PlanResult {
   const venues = venuesFrom(groupFacts);
   const verdicts = groupFacts.filter((f) => f.kind === "verdict");
   const influences: Influence[] = [];
@@ -206,7 +206,10 @@ export function plan(req: PlanRequest, attendees: Attendee[], groupFacts: Stored
     }
     if (req.cuisine && v.cuisine.includes(req.cuisine)) { score += 3; reasons.push(`it's ${cuisineLabel(req.cuisine)}, as asked`); }
     if (req.area && v.area && fold(req.area) === fold(v.area)) { score += 2; reasons.push(`it's in ${v.area}`); }
-    if (opts.lastVenueSlug && opts.lastVenueSlug === v.slug) { score -= 2; }
+    // Variety: the table's recent decisions (events on Walrus) push the same place down.
+    const recentIdx = (opts.recentVenueSlugs ?? []).indexOf(v.slug);
+    if (recentIdx >= 0) { score -= 3 - recentIdx; }
+    else if (opts.lastVenueSlug && opts.lastVenueSlug === v.slug) { score -= 2; }
     scored.push({ venue: v, score, reasons: [...new Set(reasons)] });
   }
 

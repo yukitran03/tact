@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { createApp } from "../app";
 import { createApi } from "./api";
+import { handleMcpHttp } from "../channels/mcp";
 
 const app = createApp();
 const api = createApi(app);
@@ -30,6 +31,14 @@ const server = Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname === "/demo") return Response.redirect(`/api/demo/open${url.search}`, 302);
+    if (url.pathname === "/mcp") {
+      try {
+        return await handleMcpHttp(app, req);
+      } catch (err) {
+        console.error("[mcp]", err);
+        return Response.json({ jsonrpc: "2.0", error: { code: -32603, message: "internal error" }, id: null }, { status: 500 });
+      }
+    }
     try {
       const res = await api(req, url);
       if (res) return res;

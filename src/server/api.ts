@@ -238,6 +238,21 @@ export function createApi(app: App) {
       });
     }
 
+    // Agent tokens for MCP clients (Claude Code, Codex, Cursor, Claude Desktop). The token is returned once.
+    if (p === "/api/agents" && req.method === "GET") {
+      return json({ agents: ledger.agentTokens(member.id), mcpUrl: `${settings.publicUrl.replace(/\/$/, "")}/mcp` });
+    }
+    if (p === "/api/agents" && req.method === "POST") {
+      const b = await body<{ label?: string }>(req);
+      const label = (b.label ?? "").trim().slice(0, 40) || "My agent";
+      const created = ledger.createAgentToken(member.id, label);
+      return json({ id: created.id, label, token: created.token, mcpUrl: `${settings.publicUrl.replace(/\/$/, "")}/mcp` });
+    }
+    const am = /^\/api\/agents\/([^/]+)$/.exec(p);
+    if (am && req.method === "DELETE") {
+      return json({ revoked: ledger.revokeAgentToken(member.id, am[1]) });
+    }
+
     if (p === "/api/shield") {
       return json({ entries: ledger.shieldFor(member.id).map((s) => ({ ...s, group: ledger.group(s.group_id)?.name })) });
     }

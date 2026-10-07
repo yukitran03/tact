@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import { createHash, randomBytes } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { ChatMessage, Channel, Group, Kind, Member, RoomType, Tier } from "../core/types";
@@ -81,6 +82,9 @@ CREATE TABLE IF NOT EXISTS turn_log (
   memories_used INTEGER NOT NULL DEFAULT 0, memories_written INTEGER NOT NULL DEFAULT 0, withheld INTEGER NOT NULL DEFAULT 0,
   leak_blocked INTEGER NOT NULL DEFAULT 0, ms INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS agent_tokens (
+  id TEXT PRIMARY KEY, member_id TEXT NOT NULL, label TEXT NOT NULL, token_hash TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL, last_used_at TEXT, revoked INTEGER NOT NULL DEFAULT 0);
 `;
 
 export const newId = () => crypto.randomUUID();
@@ -277,6 +281,32 @@ export class Ledger {
     };
   }
 
+  // ── agent tokens (MCP) ───────────────────────────────────────────
+  /** Creates a token an agent uses to act as this member. Only its hash is stored; the token is shown once. */
+  createAgentToken(memberId: string, label: string): { id: string; token: string } {
+    const token = `tact_${randomBytes(24).toString("base64url")}`;
+    const id = newId();
+    this.db.query("INSERT INTO agent_tokens (id, member_id, label, token_hash, created_at) VALUES (?, ?, ?, ?, ?)")
+      .run(id, memberId, label.slice(0, 60) || "agent", hashToken(token), nowIso());
+    return { id, token };
+  }
+
+  /** Member id and label for a live token, or null. Touches last_used_at. */
+  resolveAgentToken(token: string): { memberId: string; label: string; id: string } | null {
+    const row = this.db.query("SELECT id, member_id, label FROM agent_tokens WHERE token_hash = ? AND revoked = 0").get(hashToken(token)) as any;
+    if (!row) return null;
+    this.db.query("UPDATE agent_tokens SET last_used_at = ? WHERE id = ?").run(nowIso(), row.id);
+    return { memberId: row.member_id, label: row.label, id: row.id };
+  }
+
+  agentTokens(memberId: string): { id: string; label: string; created_at: string; last_used_at: string | null }[] {
+    return this.db.query("SELECT id, label, created_at, last_used_at FROM agent_tokens WHERE member_id = ? AND revoked = 0 ORDER BY created_at DESC").all(memberId) as any[];
+  }
+
+  revokeAgentToken(memberId: string, id: string): boolean {
+    return this.db.query("UPDATE agent_tokens SET revoked = 1 WHERE id = ? AND member_id = ?").run(id, memberId).changes > 0;
+  }
+
   getKv(k: string): string | null {
     return ((this.db.query("SELECT v FROM kv WHERE k = ?").get(k) as any)?.v as string) ?? null;
   }
@@ -298,4 +328,8 @@ function toMember(r: any): Member {
 
 function toGroup(r: any): Group {
   return { id: r.id, name: r.name, channel: r.channel, externalId: r.external_id, inviteCode: r.invite_code, createdAt: r.created_at, demo: !!r.demo };
+}
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
 }

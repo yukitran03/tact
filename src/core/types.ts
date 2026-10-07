@@ -95,6 +95,8 @@ export interface Inbound {
   text: string;
   /** Telegram: the bot was @mentioned or replied to; web: always true. */
   addressed?: boolean;
+  /** Set when an agent (Claude Code, Codex, Cursor...) acts for the member over MCP. */
+  via?: string;
 }
 
 export interface Outbound {

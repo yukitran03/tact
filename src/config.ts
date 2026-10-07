@@ -4,6 +4,25 @@ import { join } from "node:path";
 
 export const DEFAULT_RELAYER = "https://relayer.memory.walrus.xyz";
 
+/** The repository root, so an MCP client that launches Tact from another directory finds the same data. */
+export const ROOT = join(import.meta.dir, "..");
+
+/**
+ * Bun only reads .env from the working directory. Claude Code, Codex and
+ * Cursor start the stdio MCP server from wherever they run, so the repo's own
+ * .env is loaded explicitly; variables already set in the environment win.
+ */
+function loadDotEnv(path: string): void {
+  if (!existsSync(path)) return;
+  for (const line of readFileSync(path, "utf8").split("\n")) {
+    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/.exec(line);
+    if (!m || line.trimStart().startsWith("#")) continue;
+    const value = m[2].replace(/\s+#.*$/, "").replace(/^(['"])(.*)\1$/, "$2");
+    if (process.env[m[1]] === undefined && value !== "") process.env[m[1]] = value;
+  }
+}
+loadDotEnv(join(ROOT, ".env"));
+
 export interface MemWalCredentials {
   key: string;
   accountId: string;
@@ -76,7 +95,7 @@ export function loadSettings(): Settings {
     (process.env.LLM_BASE_URL ? "openai-compatible" : "ollama");
   return {
     port: Number(env("PORT", "8787")),
-    dataDir: env("TACT_DATA_DIR", join(process.cwd(), ".tact")),
+    dataDir: env("TACT_DATA_DIR", join(ROOT, ".tact")),
     memoryMode,
     namespaceSecret: env("TACT_NAMESPACE_SECRET", "tact-dev-namespace-secret-change-me"),
     sessionSecret: env("TACT_SESSION_SECRET", "tact-dev-session-secret-change-me"),

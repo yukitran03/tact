@@ -30,6 +30,8 @@ const RE = {
   tierChange: /^\s*(?:\/(share|discreet|private)|make|doi)\s+(\d+|.+?)\s*(?:(?:->|thanh|to)?\s*(shared|discreet|private|cong khai|kin dao|rieng tu))?\s*$/,
   aboutMember: /(allergic|allergy|di ung|eat|an duoc|budget|ngan sach|thich|like|live|o dau|know about|biet gi ve|diet|an chay|vegetarian|everything|tell me about|ke ve)/,
   constraintAsk: /(allerg|di ung|diet|dietary|restriction|vegetarian|vegan|halal|kosher|an chay|an kieng|kieng|budget|ngan sach|can.t eat|khong an duoc|who (is|are) (on|vegetarian|vegan))/,
+  confirm: /(^\/go\b|\bchot\b|we'?re going|we are going|let'?s go with|let'?s do|booked|go with|dat ban|dat roi|di quan)/,
+  importMem: /^\s*(\/import|import|nhap)\b/,
   availabilityAsk: /(who can.t (come|make it|do)|who is busy|who'?s busy|ai (ban|khong (di|ranh|tham gia))|ai vang|can.t come|khong di duoc)/,
 };
 
@@ -72,7 +74,7 @@ export class Engine {
     const t0 = performance.now();
     const member = this.ledger.member(msg.memberId);
     if (!member) throw new Error(`unknown member ${msg.memberId}`);
-    this.ledger.addMessage({ roomType: msg.roomType, roomId: msg.roomId, memberId: member.id, role: "user", text: msg.text });
+    this.ledger.addMessage({ roomType: msg.roomType, roomId: msg.roomId, memberId: member.id, role: "user", text: msg.text, meta: msg.via ? { via: msg.via } : undefined });
     const lang: Lang = isVietnamese(msg.text) ? "vi" : "en";
     let result: { out: Outbound[]; intent: string; used?: number; written?: number; withheld?: number; leakBlocked?: number };
     try {
@@ -102,6 +104,11 @@ export class Engine {
 
     if (has(text, RE.help)) return { intent: "help", out: [room(T.help(lang))] };
 
+    // A pasted memory export (ChatGPT's "what do you know about me", Claude's memory, notes) is imported line by line.
+    if (RE.importMem.test(fold(text)) || text.split("\n").filter((l) => l.trim()).length >= 4) {
+      return this.importMemory(member, text, lang);
+    }
+
     const facts = extractByRules(text, "dm");
     if (has(text, RE.start) && facts.length === 0) {
       return { intent: "welcome", out: [room(T.welcome(member.displayName, lang), { type: "welcome" })] };
@@ -121,9 +128,36 @@ export class Engine {
 
     if (facts.length) {
       for (const f of facts) await this.memory.writeFact(me, f);
-      return { intent: "remember", written: facts.length, out: [room(confirmFacts(facts, lang), { type: "remembered", facts: facts.map(publicFactView) })] };
+      const recheck = await this.recheckDecisions(member, facts, lang);
+      return { intent: "remember", written: facts.length, out: [room(confirmFacts(facts, lang), { type: "remembered", facts: facts.map(publicFactView) }), ...recheck] };
     }
     return this.answerQuestion(member, text, lang);
+  }
+
+  /**
+   * Imports a memory dump from another assistant. Each line or sentence goes
+   * through the same extractor as a chat message, so only food, budget, area
+   * and availability facts are kept, all discreet by default; everything else
+   * in the paste (jobs, health, family) is ignored rather than stored.
+   */
+  private async importMemory(member: Member, text: string, lang: Lang) {
+    const me: OwnerRef = { type: "member", id: member.id };
+    const body = text.replace(/^\s*(\/import|import|nhập|nhap)\s*:?/i, "");
+    const chunks = body.split(/\n+|(?<=[.!?])\s+(?=[A-ZĐÂĂÊÔƠƯ])/).map((l) => l.replace(/^[\s\-*•\d.)]+/, "").trim()).filter((l) => l.length > 2);
+    const byKey = new Map<string, Fact>();
+    for (const c of chunks) for (const f of extractByRules(c, "dm")) if (!f.retract) byKey.set(f.key, { ...f, quote: c.slice(0, 160) });
+    const facts = [...byKey.values()];
+    for (const f of facts) await this.memory.writeFact(me, f);
+    const room = (t: string, meta?: Record<string, unknown>): Outbound => ({ roomType: "dm", roomId: member.id, text: t, meta });
+    if (!facts.length) {
+      return { intent: "import-empty", out: [room(lang === "vi"
+        ? `Mình đọc ${chunks.length} dòng nhưng không thấy gì về ăn uống, ngân sách, khu vực hay lịch bận nên không lưu gì.`
+        : `I read ${chunks.length} lines but found nothing about food, budget, area or availability, so I saved nothing.`)] };
+    }
+    const head = lang === "vi"
+      ? `Đã nhập ${facts.length} điều từ ${chunks.length} dòng bạn dán. Phần còn lại không liên quan nên mình bỏ qua, không lưu.`
+      : `Imported ${facts.length} facts from the ${chunks.length} lines you pasted. The rest wasn't about food, budget, area or availability, so I didn't keep it.`;
+    return { intent: "import", written: facts.length, out: [room(`${head}\n${facts.map((f) => `• ${f.text} _(${tierLabel(f.tier, lang)})_`).join("\n")}`, { type: "remembered", facts: facts.map(publicFactView) })] };
   }
 
   private async forgetFact(member: Member, what: string, lang: Lang) {
@@ -270,6 +304,16 @@ export class Engine {
       return { intent: "list-group-memory", used: g.facts.length, out: [room(lines.join("\n"), { type: "group-memory" })] };
     }
 
+    if (/^\s*(\/?replan|re-plan|plan again|tim cho khac|chon lai|tim lai)\b/.test(fold(cleaned))) {
+      const last = this.ledger.lastPlan(group.id);
+      return this.planForGroup(member, group, last?.request ?? "where should we eat?", lang);
+    }
+
+    if (has(cleaned, RE.confirm)) {
+      const confirmed = await this.confirmVenue(member, group, cleaned, lang);
+      if (confirmed) return confirmed;
+    }
+
     if (looksLikePlan(cleaned)) return this.planForGroup(member, group, cleaned, lang);
 
     const g = await this.memory.readFacts(groupRef);
@@ -304,6 +348,84 @@ export class Engine {
     };
   }
 
+  /**
+   * Memory that changes should change decisions. When someone tells Tact a new
+   * allergy, diet, budget or busy day, the latest decision at each of their
+   * tables is checked against it. If it no longer fits, the table hears only
+   * that, and the person hears why, privately.
+   */
+  private async recheckDecisions(member: Member, facts: Fact[], lang: Lang): Promise<Outbound[]> {
+    const relevant = facts.filter((f) => ["allergy", "diet", "avoid", "budget", "availability"].includes(f.kind) && f.tier !== "private" && !f.retract);
+    if (!relevant.length) return [];
+    const out: Outbound[] = [];
+    for (const g of this.ledger.groupsOf(member.id)) {
+      const gf = await this.memory.readFacts({ type: "group", id: g.id });
+      const events = gf.facts.filter((f) => f.kind === "event" && f.attrs.venue).sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+      const lastPlan = this.ledger.lastPlan(g.id);
+      const planDecision = lastPlan ? (JSON.parse(lastPlan.decision) as StoredPlan) : null;
+      const recentPlan = lastPlan && Date.now() - Date.parse(lastPlan.created_at) < 7 * 86_400_000 ? planDecision : null;
+      const event = events[0] && Date.now() - Date.parse(events[0].at) < 7 * 86_400_000 ? events[0] : null;
+      const slug = event?.attrs.venue ?? recentPlan?.choice?.slug;
+      if (!slug) continue;
+      if (recentPlan && !event && !recentPlan.attendees.some((a) => a.memberId === member.id)) continue;
+      const venue = venuesFrom(gf.facts).find((v) => v.slug === slug);
+      if (!venue) continue;
+      const day = event?.attrs.day ?? recentPlan?.request.day;
+      const asStored = relevant.map((f) => ({ ...f, origin: "pending" as const }));
+      const me: Attendee = { memberId: member.id, name: member.displayName, facts: asStored, readOk: true };
+      const conflicts = violations(venue, [me]);
+      const busy = day ? relevant.find((f) => f.kind === "availability" && (f.attrs.busy ?? "").split(",").includes(day)) : undefined;
+      if (!conflicts.length && !busy) continue;
+      const reason = busy ? (lang === "vi" ? `bạn bận ${dayName(day!, lang)}` : `you're busy on ${dayName(day!, "en")}`) : (conflicts[0].you ?? conflicts[0].detail);
+      const when = day ? (lang === "vi" ? ` cho ${dayName(day, lang)}` : ` for ${dayName(day, "en")}`) : "";
+      out.push({ roomType: "group", roomId: g.id, meta: { type: "recheck", venue: venue.name },
+        text: lang === "vi"
+          ? `Lưu ý: ${venue.name}${when} không còn hợp với tất cả mọi người nữa. Nói “replan” để mình tìm chỗ khác.`
+          : `Heads up: ${venue.name}${when} no longer works for everyone. Say “replan” and I'll find another place.` });
+      out.push({ roomType: "dm", roomId: member.id, meta: { type: "shield-note" },
+        text: lang === "vi"
+          ? `Thông tin mới của bạn không hợp với ${venue.name} ở “${g.name}” (${reason}). Mình đã báo nhóm là quán đó không còn hợp với tất cả, không nói lý do.`
+          : `Your update doesn't fit ${venue.name} at “${g.name}” (${reason}). I told the table it no longer works for everyone, without saying why.` });
+      for (const c of conflicts.length ? conflicts : [{ factKey: busy!.key, kind: busy!.kind, detail: reason, you: reason, blobId: undefined } as any]) {
+        this.ledger.addShield({ plan_id: lastPlan?.id ?? null, group_id: g.id, owner_member_id: member.id, fact_key: c.factKey, fact_kind: c.kind, blob_id: c.blobId ?? null, action: "rechecked", detail: c.you ?? c.detail });
+      }
+    }
+    return out;
+  }
+
+  /**
+   * "Chốt Phở Lan" / "we're going to Phở Lan": the decision is written to the
+   * table's Walrus namespace as an event, so variety and history come from
+   * Walrus rather than from this server's database.
+   */
+  private async confirmVenue(member: Member, group: Group, text: string, lang: Lang) {
+    const groupRef: OwnerRef = { type: "group", id: group.id };
+    const g = await this.memory.readFacts(groupRef);
+    const venues = venuesFrom(g.facts);
+    let venue = venues.find((v) => mentionsName(text, v.name) || fold(text).includes(fold(v.name)));
+    const last = this.ledger.lastPlan(group.id);
+    const lastDecision = last ? (JSON.parse(last.decision) as StoredPlan) : null;
+    if (!venue && lastDecision?.choice && /(it|that|do|di thoi|ok|chot)\b/.test(fold(text))) venue = venues.find((v) => v.slug === lastDecision.choice!.slug);
+    if (!venue) return null;
+    const day = lastDecision?.request.day;
+    const now = new Date().toISOString();
+    const people = lastDecision?.attendees.length ?? this.ledger.groupMembers(group.id).length;
+    const fact: Fact = {
+      kind: "event", tier: "shared", key: `event:${now.slice(0, 10)}:${venue.slug}`,
+      text: `The table chose ${venue.name}${day ? ` for ${dayName(day, "en")}` : ""} on ${now.slice(0, 10)}, ${people} people.`,
+      attrs: { venue: venue.slug, name: venue.name, ...(day ? { day } : {}), people: String(people) },
+      by: member.displayName, source: "group", at: now,
+    };
+    await this.memory.writeFact(groupRef, fact);
+    return {
+      intent: "confirm", written: 1,
+      out: [{ roomType: "group" as const, roomId: group.id, meta: { type: "event", venue: venue.name },
+        text: lang === "vi"
+          ? `Chốt **${venue.name}**. Mình ghi vào trí nhớ của nhóm trên Walrus để lần sau không lặp lại quá sớm. Đi về nhớ kể mình nghe quán thế nào nhé.`
+          : `Locked in: **${venue.name}**. It's in the table's memory on Walrus, so I won't suggest it again too soon. Tell me how it was afterwards.` }],
+    };
+  }
+
   /** "Who can't come Thursday?" is answered with a count and a better day, never with names. */
   private async availabilityForGroup(group: Group, text: string, lang: Lang) {
     const members = this.ledger.groupMembers(group.id);
@@ -327,10 +449,13 @@ export class Engine {
     const reads = await this.memory.readMany(owners);
     const readMs = Math.round(performance.now() - t0);
     const groupRead = reads.get(`group:${group.id}`)!;
-    const attendees: Attendee[] = members.map((m) => {
+    const everyone: Attendee[] = members.map((m) => {
       const r = reads.get(`member:${m.id}`)!;
       return { memberId: m.id, name: m.displayName, facts: r.facts, readOk: !r.failed };
     });
+    // "dinner with An and Bảo" plans for those people; "without Dũng" for everyone else.
+    const scope = pickAttendees(text, members, member);
+    const attendees = everyone.filter((a) => scope.ids.has(a.memberId));
     const req = parsePlanRequest(text);
     const mode = this.mode(group.id);
     if (mode !== "off" && (groupRead.failed || attendees.every((a) => !a.readOk))) {
@@ -343,8 +468,11 @@ export class Engine {
         { type: "plan-unavailable", error: groupRead.error ?? attendees.find((a) => !a.readOk)?.name })],
       };
     }
-    const last = this.ledger.lastPlan(group.id);
-    const lastSlug = last ? (JSON.parse(last.decision) as StoredPlan).choice?.slug : undefined;
+    // Recent decisions come from the table's own memory on Walrus.
+    const recent = groupRead.facts.filter((f) => f.kind === "event" && f.attrs.venue)
+      .sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).map((f) => f.attrs.venue);
+    const lastPlanRow = this.ledger.lastPlan(group.id);
+    const lastSlug = recent[0] ?? (lastPlanRow ? (JSON.parse(lastPlanRow.decision) as StoredPlan).choice?.slug : undefined);
 
     if (mode === "off") {
       const v = planWithoutMemory(req, groupRead.facts);
@@ -355,10 +483,15 @@ export class Engine {
       return { intent: "plan-off", out: [room(t, { type: "plan", mode: "off", venue: v?.name ?? null, violations: broken.length, questionsAsked: 3 })] };
     }
 
-    const result = plan(req, attendees, groupRead.facts, { lastVenueSlug: lastSlug });
-    const factsByMember = new Map(attendees.map((a) => [a.memberId, a.facts]));
-    const terms = sensitiveTerms(factsByMember, new Map(attendees.map((a) => [a.memberId, a.name])));
+    const result = plan(req, attendees, groupRead.facts, { lastVenueSlug: lastSlug, recentVenueSlugs: recent.slice(0, 3) });
+    // Everyone at the table is protected, including people this plan is not for.
+    const factsByMember = new Map(everyone.map((a) => [a.memberId, a.facts]));
+    const terms = sensitiveTerms(factsByMember, new Map(everyone.map((a) => [a.memberId, a.name])));
     const ctx = publicContext(result, lang);
+    if (scope.scoped) {
+      const others = attendees.filter((a) => a.memberId !== member.id).map((a) => a.name).sort((x, y) => fold(x).localeCompare(fold(y)));
+      ctx.forNames = [...(scope.ids.has(member.id) ? [lang === "vi" ? "bạn" : "you"] : []), ...others];
+    }
     const polished = await polishGroupReply(this.llm, ctx, terms, this.opts.polishBudgetMs);
     const finalHits = scanForLeaks(polished.text, terms, [ctx.choice?.name ?? "", ctx.choice?.area ?? "", ctx.choice?.price ?? "", ...ctx.alternatives.map((a) => a.name)]);
 
@@ -385,8 +518,10 @@ export class Engine {
       }
     }
 
+    const privateSkipped = attendees.reduce((n, a) => n + a.facts.filter((f) => f.tier === "private").length, 0);
     const out: Outbound[] = [room(polished.text, {
-      type: "plan", mode, planId: planRow.id, choice: ctx.choice, alternatives: ctx.alternatives,
+      type: "plan", mode, planId: planRow.id, choice: ctx.choice, alternatives: ctx.alternatives, privateSkipped,
+      forNames: ctx.forNames ?? null,
       people: result.attendees.length, memoriesConsulted: result.memoriesConsulted, ruledOut: result.ruledOut.length,
       withheld, composer: polished.source, leakBlocked: polished.leakHits.length, readMs,
       unreadable: result.attendees.filter((a) => !a.readOk).map((a) => a.name),
@@ -452,4 +587,26 @@ export function pickFact(facts: StoredFact[], what: string): StoredFact | null {
   }
   if (!w) return null;
   return facts.find((f) => fold(f.key).includes(w) || fold(f.text).includes(w) || w.split(/\s+/).some((x) => x.length >= 3 && (fold(f.text).includes(x) || fold(f.key).includes(x)))) ?? null;
+}
+
+const EXCLUDE_BEFORE = /(without|except|minus|not|but not|tru|ngoai tru|khong co|khong ru|bo|tru di)\s*$/;
+const INCLUDE_HINT = /(\bwith\b|\bjust\b|\bonly\b|\bchi\b|\bvoi\b|\bcung\b|\bfor\b|\bcho\b)/;
+
+/** Who a plan is for. Mentions after "without"/"trừ" are excluded; "with"/"chỉ"/"for" names a subset. */
+export function pickAttendees(text: string, members: Member[], requester: Member): { ids: Set<string>; scoped: boolean } {
+  const t = fold(text);
+  const mentioned = members.filter((m) => m.id !== requester.id && mentionsName(text, m.displayName));
+  const excluded = mentioned.filter((m) => {
+    const i = t.search(new RegExp(`(^|[^a-z0-9])${fold(m.displayName)}($|[^a-z0-9])`));
+    return i >= 0 && EXCLUDE_BEFORE.test(t.slice(Math.max(0, i - 14), i + 1).trimEnd());
+  });
+  const included = mentioned.filter((m) => !excluded.includes(m));
+  if (included.length && INCLUDE_HINT.test(t)) {
+    const forOthers = /\b(for|cho)\b/.test(t) && !/\b(with|voi|cung|me|minh|toi)\b/.test(t);
+    const ids = new Set(included.map((m) => m.id));
+    if (!forOthers) ids.add(requester.id);
+    return { ids, scoped: true };
+  }
+  if (excluded.length) return { ids: new Set(members.filter((m) => !excluded.includes(m)).map((m) => m.id)), scoped: true };
+  return { ids: new Set(members.map((m) => m.id)), scoped: false };
 }

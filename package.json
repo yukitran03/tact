@@ -15,6 +15,9 @@
     "telegram": "bun src/channels/telegram.ts",
     "smoke": "bun scripts/smoke.ts",
     "diagnose": "bun scripts/diagnose.ts",
+    "agent-token": "bun scripts/agent-token.ts",
+    "mcp": "bun src/channels/mcp.ts",
+    "simulate": "bun scripts/simulate.ts",
     "seed": "bun scripts/seed-personas.ts",
     "eval": "bun scripts/eval.ts",
     "evidence": "bun scripts/evidence.ts",
@@ -22,11 +25,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
     "@mysten-incubation/memwal": "0.1.8",
     "@mysten/seal": "^1.4.19",
     "@mysten/sui": "^2.35.0",
     "@mysten/walrus": "^1.2.34",
-    "preact": "^11.0.0"
+    "preact": "^11.0.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",

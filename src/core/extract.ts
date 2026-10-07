@@ -128,7 +128,7 @@ export function extractByRules(raw: string, said: Said, now = new Date().toISOSt
   }
 
   // Home / work area.
-  if (/(live in|living in|work in|working in|based in|office (is )?in|near|nha (minh |toi )?o|o gan|lam (viec )?o|cong ty o|minh o|toi o|tui o|o quan|song o)/.test(t)) {
+  if (/(lives? in|living in|works? in|working in|based in|office (is )?in|near|nha (minh |toi )?o|o gan|lam (viec )?o|cong ty o|minh o|toi o|tui o|o quan|song o)/.test(t)) {
     const area = areaIn(text);
     if (area) out.push(fact("area", "area", `Lives or works around ${area}.`, { area }, said, text, now));
   }
