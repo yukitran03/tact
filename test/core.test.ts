@@ -90,6 +90,12 @@ describe("extraction", () => {
     expect(extractByRules("Bảo có ăn chay không?", "group")).toEqual([]);
     expect(extractByRules("I'm vegetarian", "group").length).toBe(1);
   });
+  test("diet changes are read as changes, not as the old diet", () => {
+    expect(extractByRules("I'm no longer vegetarian", "dm")[0].attrs.diet).toBe("omnivore");
+    expect(extractByRules("Mình không còn ăn chay nữa", "dm")[0].attrs.diet).toBe("omnivore");
+    expect(extractByRules("I stopped being vegan last month", "dm")[0].attrs.diet).toBe("omnivore");
+    expect(extractByRules("I'm vegetarian now", "dm")[0].attrs.diet).toBe("vegetarian");
+  });
   test("retraction", () => {
     const f = extractByRules("I'm no longer allergic to peanuts", "dm")[0];
     expect(f.key).toBe("allergy:peanut");

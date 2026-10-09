@@ -92,12 +92,13 @@ export const DIET_EXCLUDES: Record<Diet, string[]> = {
 
 export function dietIn(text: string): Diet | null {
   const t = fold(text);
+  // Retractions first: "no longer vegetarian" contains "vegetarian".
+  if (/(no longer (vegetarian|vegan|halal)|not (vegetarian|vegan) any ?more|stopped being (vegetarian|vegan)|eat everything|an het|an duoc het|khong (con )?an chay nua|het an chay|bo an chay)/.test(t)) return "omnivore";
   if (/\b(vegan|thuan chay)\b/.test(t)) return "vegan";
   if (/(vegetarian|an chay|\bchay\b|khong an thit|plant.based)/.test(t)) return "vegetarian";
   if (/\bhalal\b/.test(t)) return "halal";
   if (/\bkosher\b/.test(t)) return "kosher";
   if (/pescatarian/.test(t)) return "pescatarian";
-  if (/(no longer vegetarian|not vegetarian any ?more|eat everything|an het|an duoc het|khong an chay nua)/.test(t)) return "omnivore";
   return null;
 }
 
