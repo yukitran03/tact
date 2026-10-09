@@ -1,0 +1,164 @@
+{
+  "summary": {
+    "when": "2026-10-09T16:36:01.198Z",
+    "mode": "mock",
+    "backend": "mock",
+    "people": 6,
+    "labelled": "simulated (demo personas, not real users)",
+    "memoriesPerPerson": [
+      {
+        "name": "An",
+        "facts": 11,
+        "discreet": 8,
+        "shared": 3,
+        "private": 0
+      },
+      {
+        "name": "Bảo",
+        "facts": 11,
+        "discreet": 8,
+        "shared": 3,
+        "private": 0
+      },
+      {
+        "name": "Chi",
+        "facts": 12,
+        "discreet": 9,
+        "shared": 3,
+        "private": 0
+      },
+      {
+        "name": "Dũng",
+        "facts": 10,
+        "discreet": 7,
+        "shared": 3,
+        "private": 0
+      },
+      {
+        "name": "Em",
+        "facts": 12,
+        "discreet": 9,
+        "shared": 3,
+        "private": 0
+      },
+      {
+        "name": "Phong",
+        "facts": 10,
+        "discreet": 5,
+        "shared": 5,
+        "private": 0
+      }
+    ],
+    "places": 12,
+    "turns": 95,
+    "plans": {
+      "count": 7,
+      "violations": 0
+    },
+    "groupLeaks": 0,
+    "probes": {
+      "count": 6,
+      "leaked": 0
+    },
+    "onWalrus": 84,
+    "failed": 0,
+    "ok": true
+  },
+  "planPicks": [
+    {
+      "request": "add place: Ốc Đào Corner, seafood snails clams, ~150k, District 4",
+      "pick": null,
+      "broken": -1
+    },
+    {
+      "request": "add place: Gogi Grill, korean bbq pork beef, ~250k, District 1",
+      "pick": null,
+      "broken": -1
+    },
+    {
+      "request": "add place: Seoul Garden, korean bbq pork beef, ~190k, District 1",
+      "pick": null,
+      "broken": -1
+    },
+    {
+      "request": "Where should we eat Friday?",
+      "pick": "Bánh Mì Chay Hòa",
+      "broken": 0
+    },
+    {
+      "request": "seafood dinner friday?",
+      "pick": "Bánh Mì Chay Hòa",
+      "broken": 0
+    },
+    {
+      "request": "lunch saturday, something cheap?",
+      "pick": "Bánh Mì Chay Hòa",
+      "broken": 0
+    },
+    {
+      "request": "seafood dinner friday?",
+      "pick": "Bánh Mì Chay Hòa",
+      "broken": 0
+    },
+    {
+      "request": "replan",
+      "pick": "Bánh Mì Chay Hòa",
+      "broken": 0
+    },
+    {
+      "request": "dinner without Dũng friday?",
+      "pick": "Bánh Mì Chay Hòa",
+      "broken": 0
+    },
+    {
+      "request": "korean bbq saturday night?",
+      "pick": "Bánh Mì Chay Hòa",
+      "broken": 0
+    }
+  ],
+  "leakRows": [],
+  "perPerson": [
+    {
+      "name": "An",
+      "facts": 11,
+      "discreet": 8,
+      "shared": 3,
+      "private": 0
+    },
+    {
+      "name": "Bảo",
+      "facts": 11,
+      "discreet": 8,
+      "shared": 3,
+      "private": 0
+    },
+    {
+      "name": "Chi",
+      "facts": 12,
+      "discreet": 9,
+      "shared": 3,
+      "private": 0
+    },
+    {
+      "name": "Dũng",
+      "facts": 10,
+      "discreet": 7,
+      "shared": 3,
+      "private": 0
+    },
+    {
+      "name": "Em",
+      "facts": 12,
+      "discreet": 9,
+      "shared": 3,
+      "private": 0
+    },
+    {
+      "name": "Phong",
+      "facts": 10,
+      "discreet": 5,
+      "shared": 5,
+      "private": 0
+    }
+  ]
+}

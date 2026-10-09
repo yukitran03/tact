@@ -68,12 +68,24 @@ export function foodGroupsIn(text: string): string[] {
   return [...found];
 }
 
+/**
+ * Short Vietnamese syllables that collide with everyday folded words once
+ * diacritics are stripped ("cua" crab vs "của" of, "ghe" vs "nghe", "hen" vs
+ * "hẹn"). Keep them for food matching; drop them from leak scanning.
+ */
+const AMBIGUOUS_LEAK_SURFACE = new Set([
+  "cua", "ghe", "hen", "oc", "tom", "hau", "ngao", "long", "sua", "cay",
+]);
+
 /** Every surface word (both languages) for a set of groups, for leak scanning. */
 export function surfaceWords(groups: string[]): string[] {
   const out = new Set<string>();
   for (const g of groups) {
     out.add(g);
-    for (const w of FOOD_GROUPS[g] ?? []) if (w.length >= 3) out.add(w);
+    for (const w of FOOD_GROUPS[g] ?? []) {
+      if (w.length < 3 || AMBIGUOUS_LEAK_SURFACE.has(w)) continue;
+      out.add(w);
+    }
   }
   return [...out];
 }

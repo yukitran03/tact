@@ -108,8 +108,9 @@ Create a bot with @BotFather, set `TELEGRAM_BOT_TOKEN` and run `bun run telegram
 
 | Command | What it does |
 |---|---|
-| `bun test` | 35 tests: extraction in English and Vietnamese, planner, privacy scan, the engine with a model that tries to leak, refusing to plan when Walrus can't be read, API privacy, and the Telegram adapter against a fake Bot API |
+| `bun test` | extraction in English and Vietnamese, planner, privacy scan, the engine with a model that tries to leak, refusing to plan when Walrus can't be read, API privacy, MCP tools, and the Telegram adapter against a fake Bot API |
 | `bun run eval [--live] [--no-llm]` | the results table above |
+| `bun run simulate [--live] [--users=N]` | multi-user conversation: interleaved DMs, plans, mind-changes, nosy probes; exit 1 on a leak or broken plan |
 | `bun run diagnose` | compares your account with the package the relayer serves and finds the migrated account if yours predates the July 2026 migration |
 | `bun run evidence` | submission evidence: account, agent id, memories per person, Walruscan links |
 | `bun scripts/screenshots.ts` | screenshots of the running app through the Chrome DevTools Protocol |

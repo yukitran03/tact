@@ -182,4 +182,10 @@ describe("firewall", () => {
     const terms = sensitiveTerms(new Map([["x", extractByRules("I love spicy food", "dm").map((f) => stored(f))]]));
     expect(scanForLeaks("Minh loves spicy food", terms)).toEqual([]);
   });
+  test("folded Vietnamese function words are not shellfish leaks", () => {
+    const terms = sensitiveTerms(new Map([["bao", extractByRules("Mình dị ứng tôm cua", "dm").map((f) => stored(f))]]));
+    // "của" → "cua", "nghe" sits next to "ghe"; neither must trip the shield.
+    expect(scanForLeaks("Mình ghi vào trí nhớ của nhóm. Kể mình nghe quán thế nào.", terms)).toEqual([]);
+    expect(scanForLeaks("Bảo can't eat shrimp or crab", terms).length).toBeGreaterThan(0);
+  });
 });
