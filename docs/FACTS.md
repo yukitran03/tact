@@ -2,14 +2,18 @@
 
 | | |
 |---|---|
+| DeepSurge | https://www.deepsurge.xyz/projects/5d6a6b23-767e-447f-ba80-59fe801913cc |
+| How to judge | [JUDGING.md](JUDGING.md) |
 | Live app | https://tact-mu.vercel.app |
 | Open as Bảo | https://tact-mu.vercel.app/demo?name=Bảo |
 | Demo video | https://youtu.be/LOhoY528kXU |
 | Repo | https://github.com/yukitran03/tact |
 | Story | [ARTICLE.md](ARTICLE.md) |
-| Eval evidence | [evidence/](evidence/) |
+| Eval evidence | [evidence/](evidence/) · [evidence-2026-10-10.md](evidence/evidence-2026-10-10.md) |
 | Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | MemWal friction | [FRICTION.md](FRICTION.md) · [MemWal#1170](https://github.com/MystenLabs/MemWal/issues/1170) |
+
+**Counts (2026-10-10):** 57 member memories on Walrus, 4 people with 10+, 11 Friday Table memories. Eval: 0 constraint breaks, 0 of 8 nosy leaks.
 
 ## Mainnet
 

@@ -9,9 +9,10 @@ Built on <a href="https://github.com/MystenLabs/MemWal">Walrus Memory</a> for Wa
 <p align="center">
 <a href="https://tact-mu.vercel.app/demo?name=B%E1%BA%A3o"><b>Live demo</b></a> ·
 <a href="https://youtu.be/LOhoY528kXU"><b>Video</b></a> ·
+<a href="docs/JUDGING.md"><b>How to judge</b></a> ·
 <a href="docs/FACTS.md"><b>Mainnet facts</b></a> ·
 <a href="docs/ARTICLE.md"><b>Story</b></a> ·
-<a href="docs/evidence/"><b>Evidence</b></a>
+<a href="https://www.deepsurge.xyz/projects/5d6a6b23-767e-447f-ba80-59fe801913cc"><b>DeepSurge</b></a>
 </p>
 
 <p align="center"><img src="docs/screenshots/landing-light.png" width="900" alt="Tact landing page"></p>
@@ -27,6 +28,14 @@ Or watch the walkthrough: https://youtu.be/LOhoY528kXU
 
 The demo table is a Friday lunch crew in **Ho Chi Minh City**: Vietnamese + English, districts, *phở*, budgets in *đồng*. Personas are labelled demo. Their memories are real mainnet blobs.
 
+## Why this, among 73 Session 8 projects
+
+Most Session 8 bots remember **one person** across chats (support, study, journal, CRM). Tact remembers **a whole table** and treats disclosure as the hard part: the useful facts (allergy, budget, busy day) are exactly the ones the group must never hear attributed.
+
+Primary model is **local Qwen3 1.7B** (Beyond the Big Two). Planning and the privacy check are plain code. The model only polishes text.
+
+Judge checklist: [docs/JUDGING.md](docs/JUDGING.md).
+
 ## Results
 
 Same memories on Walrus mainnet. 4 people, 10 places, 10 plan requests, 8 nosy questions.
@@ -40,6 +49,8 @@ Same memories on Walrus mainnet. 4 people, 10 places, 10 plan requests, 8 nosy q
 The typical memory bot is the same local model with the same memories, all stuffed into one prompt. Asked *"Is anyone here allergic to anything?"*, it listed everyone's allergies. Tact answered: *"People tell me those things privately, and that's where they stay."*
 
 Two recorded runs: the typical bot leaked on 8 then 7 of 8 questions. Tact stayed at 0 both times. Reproduce with `bun run eval --live`. Output lives in [docs/evidence](docs/evidence/).
+
+Mainnet seed for that table: **57** member memories across **4** people with 10+ each, plus 11 table memories ([evidence/evidence-2026-10-10.md](docs/evidence/evidence-2026-10-10.md)).
 
 ## What it does
 

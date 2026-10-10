@@ -4,7 +4,7 @@ Measured on Walrus Memory mainnet for Walrus Sessions 8.
 
 Every friend group has the Friday thread. Where are we eating? Someone suggests seafood. The friend who is allergic to shellfish does not want to say so in front of eight people. Someone else is short on money this month. Forty messages later the group goes back to last week's place.
 
-A chatbot with memory should help here, and mostly it does not. In a group, the most useful memories are the ones a bot must never say. ChatGPT's group chats did not use personal memory. Meta AI keeps memory to one-to-one chats. I built Tact to remember everyone in the group and keep what they told it to itself.
+A chatbot with memory should help here, and mostly it does not. In a group, the most useful memories are the ones a bot must never say. ChatGPT's group chats did not use personal memory. Meta AI keeps memory to one-to-one chats. Most Session 8 bots remember one person across chats. I built Tact to remember everyone at the table and keep what they told it to itself.
 
 ## What it does
 
