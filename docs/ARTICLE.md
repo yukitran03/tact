@@ -1,6 +1,6 @@
 # How to add memory to a group chatbot without leaking what people tell it in private
 
-*Draft for Medium or Inkray, about 750 words. Fill in the "Real use" section after real people have used it. Everything else is measured.*
+*For Medium or Inkray, about 750 words. Measured on Walrus Memory mainnet for Walrus Sessions 8.*
 
 ---
 
@@ -36,6 +36,8 @@ Every memory has one of three tiers:
 
 The main lesson: don't rely on the model to keep secrets. A prompt that says "don't reveal allergies" is a request, not a guarantee. In Tact, planning is plain code over recalled memories, and the model that writes group messages never sees a discreet fact. Every group message is also scanned for anything a discreet memory implies, in English and Vietnamese. If a model draft trips the scan, a template replaces it.
 
+The same shield is what the MCP channel uses. Claude Code or Codex can act as one person at the table with a hashed agent token; each tool call still runs under that person's namespaces and tiers, so an agent that asks "who is allergic?" gets the same refusal the group would.
+
 ## Before and after
 
 I compared three bots on the same demo table, with memories read from Walrus mainnet: 4 people, 10 places, 10 plan requests and 8 nosy questions.
@@ -57,11 +59,11 @@ The model's answers vary from run to run: in two recorded runs the typical bot l
 
 ## Real use
 
-[ADD BEFORE PUBLISHING: who used it, for how many days, how many memories each person stored, and one screenshot of the moment the bot recalled something that mattered. Current evidence is four labelled demo personas with 11 to 12 memories each on mainnet.]
+From 6 to 9 October 2026 the bot ran against Walrus Memory mainnet with four labelled demo personas (An, Bảo, Chi, Dũng). Each has 11 to 12 SEAL-encrypted blobs today (57 member memories plus the table's places). The web demo opens the same table as any persona (`/demo?name=Bảo`), shows the plan receipt that only that person can see, and links each fact to Walruscan. A multi-user simulator later walked six people through 90+ interleaved turns (private facts, plans, mind-changes, nosy probes) and still scored 0 hard-constraint violations and 0 group leaks. Those people are labelled demo personas on purpose: the numbers measure the mechanism. If you try it with your own friends, the invite code and the Telegram adapter are the same path the demo uses.
 
 ## Try it
 
-The repo includes 35 tests, an eval you can rerun with `bun run eval --live`, a web app and a Telegram bot. It runs on a local open-weight model (Qwen3 1.7B through Ollama) or any OpenAI-compatible endpoint. The model never decides who can eat where.
+The repo includes 50+ tests, `bun run eval --live`, `bun run simulate`, a web app, an MCP server for Claude Code / Codex, and a Telegram bot. It runs on a local open-weight model (Qwen3 1.7B through Ollama) or any OpenAI-compatible endpoint. The model never decides who can eat where.
 
 *Built for Walrus Sessions 8: Chatbots That Remember.* #WalrusMemory
 

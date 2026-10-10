@@ -1,6 +1,14 @@
 # Walrus Memory friction found while building Tact
 
-Drafts for https://github.com/MystenLabs/MemWal/issues, checked against existing issues on 2026-10-07. **Not filed yet**: file them from the account that submits, after re-reading each repro.
+Filed from `yukitran03` on 2026-10-10 against https://github.com/MystenLabs/MemWal/issues (checked for duplicates on 2026-10-07).
+
+| § | Filed as |
+|---|---|
+| 1 migrated-account 401 | comment on #819 → https://github.com/MystenLabs/MemWal/issues/819#issuecomment-6095666837 |
+| 2 idempotency scope | **new** #1170 → https://github.com/MystenLabs/MemWal/issues/1170 |
+| 3 rate-limit numbers | comments on #1073 and #1116 |
+| 4 OpenAI on memory path | comment on #1077 |
+| 5 discreet read scope | comment on #308 |
 
 Environment for all: `@mysten-incubation/memwal` 0.1.8, Bun 1.3.10, macOS 14 (arm64), managed mainnet relayer `https://relayer.memory.walrus.xyz` (`/health` ok, package `0xe7c16fbe…d7f5`), model Qwen3 1.7B via Ollama 0.35.1 (local).
 

@@ -1,15 +1,15 @@
 # Submission answers: Walrus Sessions 8
 
-Deadline: **2026-10-09 14:00 UTC (21:00 Vietnam)**. Forms: Airtable https://airtable.com/appoDAKpC74UOqoDa/shro5iVzzjoWfZlPK · DeepSurge https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608c849 · join the Walrus Discord.
+Official duration ended **2026-10-09 14:00 UTC**. Results **2026-10-16**. Late forms may still work; see `docs/SUBMIT_NOW.md` for the click-through checklist.
 
-`[YOU]` marks what only the account owner can supply.
+`[YOU]` marks what only the account owner can supply. Repo is kept **private** until you flip it.
 
 **Before submitting:**
-1. Make the repo public (`gh repo edit yukitran03/tact --visibility public --accept-visibility-change-consequences`), the rules require a public repo.
-2. Get real people to use it for a few days (web table invite code, or the Telegram bot) and run `bun run evidence`. The demo personas meet the technical 3 × 10 memories, but judges score real use.
-3. Publish `docs/ARTICLE.md` on Medium or Inkray after filling the real-use section; post it on X under the session announcement with @WalrusProtocol and #WalrusMemory.
-4. File the issues in `docs/FRICTION.md`.
-5. Post the article in one community outside Walrus/Sui for the Promo prize (Viblo, a Vietnamese dev Facebook group, r/LocalLLaMA for the local-model angle).
+1. `[YOU]` Make the repo public (`gh repo edit yukitran03/tact --visibility public --accept-visibility-change-consequences`). Rules require it.
+2. Demo personas already meet the technical 3 × 10 memories on mainnet (`bun run evidence`). Real friends still help the story; the article is honest about demos.
+3. `[YOU]` Publish `docs/ARTICLE.md` on Medium or Inkray; X post under the session announcement with @WalrusProtocol and #WalrusMemory (`docs/PROMO.md`).
+4. MemWal friction **filed** 2026-10-10: https://github.com/MystenLabs/MemWal/issues/1170 (+ comments listed in `docs/FRICTION.md`).
+5. `[YOU]` Optional Promo prize: Viblo, a Vietnamese dev Facebook group, or r/LocalLLaMA.
 
 ---
 
@@ -36,7 +36,7 @@ Deadline: **2026-10-09 14:00 UTC (21:00 Vietnam)**. Forms: Airtable https://airt
 **Tool used to connect.** TypeScript SDK `@mysten-incubation/memwal` (relayer mode), server-side.
 
 **Bug or friction point.**
-> Idempotency keys are deduplicated across the whole account, not per namespace, and the docs don't say so. We derived keys from fact text, so when two people both said "I'm allergic to peanuts" the second write failed with `409 idempotency_key was already used for a request with different content`, six of our first 57 writes. Per-write keys fixed it. Repro in docs/FRICTION.md §2.
+> Idempotency keys are deduplicated across the whole account, not per namespace, and the docs don't say so. We derived keys from fact text, so when two people both said "I'm allergic to peanuts" the second write failed with `409 idempotency_key was already used for a request with different content`, six of our first 57 writes. Per-write keys fixed it. Filed: https://github.com/MystenLabs/MemWal/issues/1170
 
 **Improvement idea.**
 > When the relayer answers `AUTH_REJECTED` for an account in the retired package, have the SDK look up the migrated account in the current registry (four unsigned reads) and say so, and have the MCP refresh `accountId` in `~/.memwal/credentials.json`. Our credentials file predated the July migration and every call 401'd with no hint; `scripts/diagnose.ts` shows the recipe.
