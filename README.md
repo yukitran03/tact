@@ -90,6 +90,12 @@ The product story is a Vietnamese friend group deciding where to eat, not a gene
 - **HCMC demo table.** Places and constraints use local shape: District 1 / 3 / 4, Thủ Đức, Bình Thạnh, Phú Nhuận; budgets like 80k–200k VND; venues such as Phở Lan, Bánh Mì Chay Hòa, Ốc Đào Corner, Gogi Grill.
 - **Local model path.** Primary LLM is Qwen3 1.7B on Ollama (Beyond the Big Two), so the conversation model can stay on a Vietnamese laptop without Claude or ChatGPT.
 
+## Live demo
+
+**https://tact-mu.vercel.app** — open [/demo?name=Bảo](https://tact-mu.vercel.app/demo?name=B%E1%BA%A3o) to sit at the Friday table as Bảo.
+
+Deployed on Vercel (Bun + Hono). Walrus Memory is mainnet; the conversation model polish is off on Vercel (no local Ollama). SQLite for the demo table is re-seeded from `data/demo-fixture.json` on cold start so the same Walrus namespaces stay linked.
+
 ## Run it
 
 Requirements: [Bun](https://bun.sh) 1.3 or newer, a Walrus Memory delegate key from the [dashboard](https://memory.walrus.xyz/dashboard), and a model, either [Ollama](https://ollama.com) locally or any OpenAI-compatible endpoint.

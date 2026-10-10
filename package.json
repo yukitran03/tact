@@ -27,7 +27,8 @@
     "evidence": "bun scripts/evidence.ts",
     "demo-video": "bun scripts/demo-video.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "vercel-build": "echo \"tact: no build step (Bun/Hono)\""
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
@@ -35,11 +36,11 @@
     "@mysten/seal": "^1.4.19",
     "@mysten/sui": "^2.35.0",
     "@mysten/walrus": "^1.2.34",
+    "hono": "^4",
     "preact": "^11.0.0",
-    "zod": "^4.6.5"
-  },
-  "devDependencies": {
+    "zod": "^4.6.5",
     "@types/bun": "^1.4.2",
     "typescript": "^7.0.2"
-  }
+  },
+  "devDependencies": {}
 }

@@ -1,0 +1,10 @@
+.tact
+.tact-*
+.env
+.env.*
+!.env.example
+node_modules
+*.log
+docs/evidence/*.mp4
+docs/screenshots
+test

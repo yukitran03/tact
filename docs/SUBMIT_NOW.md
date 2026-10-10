@@ -32,7 +32,10 @@ Repo is **public**: https://github.com/yukitran03/tact
 Also confirm / update the project on **DeepSurge** if the hackathon page still asks for it:  
 https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608c849
 
-## Already done (do not redo)
+## Already done
+
+| Live URL | https://tact-mu.vercel.app |
+ (do not redo)
 
 | Item | Status |
 |---|---|
