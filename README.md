@@ -1,6 +1,4 @@
-<p align="center"><img src="web/favicon.svg" width="64" alt=""></p>
-
-<h1 align="center">Tact</h1>
+<p align="center"><img src="docs/brand/logo.png" width="360" alt="Tact"></p>
 
 <p align="center">A group chat bot that remembers what each person tells it in private, and uses it to plan for the whole group without repeating it.<br>
 Built on <a href="https://github.com/MystenLabs/MemWal">Walrus Memory</a> for Walrus Sessions 8, <i>Chatbots That Remember</i>.</p>
@@ -114,6 +112,7 @@ Create a bot with @BotFather, set `TELEGRAM_BOT_TOKEN` and run `bun run telegram
 | `bun run diagnose` | compares your account with the package the relayer serves and finds the migrated account if yours predates the July 2026 migration |
 | `bun run evidence` | submission evidence: account, agent id, memories per person, Walruscan links |
 | `bun scripts/screenshots.ts` | screenshots of the running app through the Chrome DevTools Protocol |
+| `bun scripts/demo-video.ts` | records a product demo MP4 (default `~/Downloads/tact-demo.mp4`) while the server is running |
 
 ## Model and runtime
 

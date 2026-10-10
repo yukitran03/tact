@@ -17,6 +17,8 @@ Repo stays **private** until you say otherwise. Rules require a **public** GitHu
 | Evidence | `docs/evidence/evidence-2026-10-10.md` |
 | Eval | `docs/evidence/eval-2026-10-07-live.md` (0 violations / 0 leaks) |
 | Multi-user sim | `bun run simulate` → `docs/evidence/simulate-2026-10-09.md` |
+| Demo video | `~/Downloads/tact-demo.mp4` (also `docs/evidence/tact-demo.mp4`) |
+| Logo | `docs/brand/logo.png` · favicon `web/favicon.svg` |
 
 ## You still do (order matters)
 

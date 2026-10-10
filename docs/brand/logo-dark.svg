@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" role="img" aria-label="Tact">
+  <g transform="translate(8,18)">
+    <rect width="84" height="84" rx="18" fill="#151A21"/>
+    <path d="M14 22c0-5.5 4.5-10 10-10h36c5.5 0 10 4.5 10 10v30c0 5.5-4.5 10-10 10H36l-12 12V72c-5.5 0-10-4.5-10-10V22z" fill="#9CC3EE"/>
+    <rect x="34" y="38" width="16" height="13" rx="3" fill="#151A21"/>
+    <path d="M38 38v-4a4 4 0 0 1 8 0v4" fill="none" stroke="#151A21" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="42" cy="44.5" r="1.8" fill="#9CC3EE"/>
+  </g>
+  <text x="112" y="78" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="700" fill="#E9EDF1" letter-spacing="-1.5">Tact</text>
+</svg>

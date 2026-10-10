@@ -5,13 +5,17 @@
   "description": "Tact: a group chat bot that remembers what each person tells it privately and plans for everyone without repeating it. Built on Walrus Memory.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yukitran03/tact.git"
+  },
+  "homepage": "https://github.com/yukitran03/tact",
   "engines": {
     "bun": ">=1.3.0"
   },
   "scripts": {
     "dev": "bun --watch src/server/main.ts",
     "start": "bun src/server/main.ts",
-    "build:web": "bun scripts/build-web.ts",
     "telegram": "bun src/channels/telegram.ts",
     "smoke": "bun scripts/smoke.ts",
     "diagnose": "bun scripts/diagnose.ts",
@@ -21,6 +25,7 @@
     "seed": "bun scripts/seed-personas.ts",
     "eval": "bun scripts/eval.ts",
     "evidence": "bun scripts/evidence.ts",
+    "demo-video": "bun scripts/demo-video.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

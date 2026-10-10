@@ -72,10 +72,19 @@ function md(text: string) {
 // ── icons ──────────────────────────────────────────────────────────
 const Icon = {
   mark: (p: { color?: string }) => (
-    <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="6" width="56" height="44" rx="14" fill={p.color ?? "var(--accent)"} /><path d="M18 50 L14 60 L28 50 Z" fill={p.color ?? "var(--accent)"} /><circle cx="32" cy="24" r="6" fill="var(--bg)" /><rect x="29" y="27" width="6" height="11" rx="3" fill="var(--bg)" /></svg>
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M10 14c0-4.4 3.6-8 8-8h28c4.4 0 8 3.6 8 8v24c0 4.4-3.6 8-8 8H28l-10 10v-10c-4.4 0-8-3.6-8-8V14z" fill={p.color ?? "var(--accent)"} />
+      <rect x="26" y="26" width="12" height="10" rx="2.5" fill="var(--bg)" />
+      <path d="M29 26v-3.2a3 3 0 0 1 6 0V26" fill="none" stroke="var(--bg)" stroke-width="2.4" stroke-linecap="round" />
+      <circle cx="32" cy="31" r="1.4" fill={p.color ?? "var(--accent)"} />
+    </svg>
   ),
   botMark: () => (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="9" r="3" fill="#fff" /><rect x="10.8" y="10.5" width="2.4" height="6" rx="1.2" fill="#fff" /></svg>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 5.5c0-1.4 1.1-2.5 2.5-2.5h11c1.4 0 2.5 1.1 2.5 2.5V14c0 1.4-1.1 2.5-2.5 2.5H11L7 21v-4.5C5.1 16.5 4 15.4 4 14V5.5z" fill="#fff" />
+      <rect x="9.5" y="10" width="5" height="4" rx="1" fill="var(--accent)" />
+      <path d="M10.7 10V8.7a1.3 1.3 0 0 1 2.6 0V10" stroke="var(--accent)" stroke-width="1.2" stroke-linecap="round" />
+    </svg>
   ),
   send: () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12l16-8-6 16-2-6-8-2z" fill="currentColor" /></svg>),
   lock: () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2.5" stroke="currentColor" stroke-width="2" /><path d="M8 10V8a4 4 0 118 0v2" stroke="currentColor" stroke-width="2" /></svg>),

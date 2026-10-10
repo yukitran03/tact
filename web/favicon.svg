@@ -1,6 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect x="4" y="6" width="56" height="44" rx="14" fill="#14324F"/>
-  <path d="M18 50 L14 60 L28 50 Z" fill="#14324F"/>
-  <circle cx="32" cy="24" r="6" fill="#FAFAF7"/>
-  <rect x="29" y="27" width="6" height="11" rx="3" fill="#FAFAF7"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tact">
+  <!-- Speech bubble that keeps a secret: lock instead of an open mouth. -->
+  <rect width="64" height="64" rx="14" fill="#FAFAF7"/>
+  <path d="M10 14c0-4.4 3.6-8 8-8h28c4.4 0 8 3.6 8 8v24c0 4.4-3.6 8-8 8H28l-10 10v-10h-0c-4.4 0-8-3.6-8-8V14z" fill="#14324F"/>
+  <rect x="26" y="26" width="12" height="10" rx="2.5" fill="#FAFAF7"/>
+  <path d="M29 26v-3.2a3 3 0 0 1 6 0V26" fill="none" stroke="#FAFAF7" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="32" cy="31" r="1.4" fill="#14324F"/>
 </svg>
