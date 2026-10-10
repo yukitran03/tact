@@ -10,7 +10,9 @@
 >
 > Runs on a local Qwen3 via Ollama. @WalrusProtocol
 > Demo: https://youtu.be/LOhoY528kXU
-> [article link] https://github.com/yukitran03/tact
+> Live: https://tact-mu.vercel.app/demo?name=Bảo
+> Story: https://github.com/yukitran03/tact/blob/main/docs/ARTICLE.md
+> Repo: https://github.com/yukitran03/tact
 
 ## Community post (for the Promo prize, outside Walrus and Sui)
 
