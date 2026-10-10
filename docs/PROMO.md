@@ -9,7 +9,8 @@
 > Measured on Walrus mainnet: a typical memory bot leaked private details on 7 of 8 nosy questions (8 of 8 in an earlier run). Tact: 0 of 8, and 0 broken constraints.
 >
 > Runs on a local Qwen3 via Ollama. @WalrusProtocol
-> [article link] [repo link]
+> Demo: https://youtu.be/LOhoY528kXU
+> [article link] https://github.com/yukitran03/tact
 
 ## Community post (for the Promo prize, outside Walrus and Sui)
 
@@ -27,6 +28,10 @@
 > Code, eval you can rerun, and what broke along the way: [repo] · [article]
 
 ## Demo video (2 to 3 minutes, no AI voice-over)
+
+**Published:** https://youtu.be/LOhoY528kXU
+
+Storyboard (source for the recording):
 
 1. **0:00 to 0:15** Hook: the Friday group thread and the friend who won't say "I'm allergic" in front of everyone.
 2. **0:15 to 0:45** Bảo's private chat: type *"Mình dị ứng tôm cua, đừng nói ai nhé."* Show the saved fact marked Discreet, then the memory panel with its Walrus blob link; open Walruscan.

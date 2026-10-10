@@ -53,7 +53,9 @@ From 6–9 October 2026 the bot ran on mainnet with four labelled demo personas 
 
 ## Try it
 
-Repo: tests, `bun run eval --live`, `bun run simulate`, web app, MCP for Claude Code/Codex, Telegram. Primary model: local Qwen3 1.7B via Ollama (or any OpenAI-compatible endpoint). The model never decides who can eat where.
+Live demo: https://tact-mu.vercel.app/demo?name=Bảo · Video: https://youtu.be/LOhoY528kXU · Repo: https://github.com/yukitran03/tact
+
+Tests, `bun run eval --live`, `bun run simulate`, web app, MCP for Claude Code/Codex, Telegram. Primary model: local Qwen3 1.7B via Ollama (or any OpenAI-compatible endpoint). The model never decides who can eat where.
 
 *Built for Walrus Sessions 8: Chatbots That Remember.* #WalrusMemory
 

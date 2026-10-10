@@ -23,7 +23,7 @@ Official duration ended **2026-10-09 14:00 UTC**. Results **2026-10-16**. Late f
 
 **Use case.** Group planning (community / friends / team chat) with private constraints.
 
-**Where is it deployed?** Web app (Bun server, `bun run start`; demo table at `/demo?name=Bảo`) and Telegram (`bun run telegram` with a BotFather token). https://tact-mu.vercel.app (Vercel). Telegram handle once the token exists.
+**Where is it deployed?** Web app (Bun server, `bun run start`; demo table at `/demo?name=Bảo`) and Telegram (`bun run telegram` with a BotFather token). Live: https://tact-mu.vercel.app (Vercel). Demo video: https://youtu.be/LOhoY528kXU. Telegram handle once the token exists.
 
 **LLM / runtime.** Qwen3 1.7B (open weights) running locally through Ollama 0.35.1, `think: false`, JSON-schema outputs; any OpenAI-compatible endpoint by env. Runtime: Bun 1.3, TypeScript, `@mysten-incubation/memwal` 0.1.8 against the managed mainnet relayer.
 

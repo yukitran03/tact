@@ -94,6 +94,8 @@ The product story is a Vietnamese friend group deciding where to eat, not a gene
 
 **https://tact-mu.vercel.app** — open [/demo?name=Bảo](https://tact-mu.vercel.app/demo?name=B%E1%BA%A3o) to sit at the Friday table as Bảo.
 
+**Demo video:** [https://youtu.be/LOhoY528kXU](https://youtu.be/LOhoY528kXU)
+
 Deployed on Vercel (Bun + Hono). Walrus Memory is mainnet; the conversation model polish is off on Vercel (no local Ollama). SQLite for the demo table is re-seeded from `data/demo-fixture.json` on cold start so the same Walrus namespaces stay linked.
 
 ## Run it

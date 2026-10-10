@@ -43,7 +43,7 @@ https://www.deepsurge.xyz/hackathons/c0141a4a-21be-4009-bc63-7c168608c849
 | Mainnet memories | 57+ blobs, 4 personas × ≥10 |
 | MemWal issues | [#1170](https://github.com/MystenLabs/MemWal/issues/1170) + comments on #819, #1073, #1116, #1077, #308 |
 | Article draft | `docs/ARTICLE.md` |
-| Demo video | `docs/evidence/tact-demo.mp4` · `~/Downloads/tact-demo.mp4` |
+| Demo video | https://youtu.be/LOhoY528kXU · local `docs/evidence/tact-demo.mp4` |
 | Evidence | `docs/evidence/evidence-2026-10-10.md` |
 
 ## Optional extras
