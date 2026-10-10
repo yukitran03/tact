@@ -1,161 +1,155 @@
 <p align="center"><img src="docs/brand/logo.png" width="360" alt="Tact"></p>
 
-<p align="center">A group chat bot that remembers what each person tells it in private, and uses it to plan for the whole group without repeating it.<br>
-Built on <a href="https://github.com/MystenLabs/MemWal">Walrus Memory</a> for Walrus Sessions 8, <i>Chatbots That Remember</i>.<br>
-Demo table is a Friday lunch crew in <b>Ho Chi Minh City</b>: Vietnamese + English, districts, <i>phở</i>, budgets in <i>đồng</i>.</p>
+<p align="center">
+A group chat bot that remembers what each person tells it in private,<br>
+and uses it to plan for the whole group without repeating it.<br>
+Built on <a href="https://github.com/MystenLabs/MemWal">Walrus Memory</a> for Walrus Sessions 8, <i>Chatbots That Remember</i>.
+</p>
+
+<p align="center">
+<a href="https://tact-mu.vercel.app/demo?name=B%E1%BA%A3o"><b>Live demo</b></a> ·
+<a href="https://youtu.be/LOhoY528kXU"><b>Video</b></a> ·
+<a href="docs/FACTS.md"><b>Mainnet facts</b></a> ·
+<a href="docs/ARTICLE.md"><b>Story</b></a> ·
+<a href="docs/evidence/"><b>Evidence</b></a>
+</p>
 
 <p align="center"><img src="docs/screenshots/landing-light.png" width="900" alt="Tact landing page"></p>
 
+## Try it
+
+1. Open https://tact-mu.vercel.app/demo?name=Bảo (you sit as Bảo at the Friday table).
+2. Ask in the group: *Where should we eat Friday?*
+3. Ask something nosy: *Is anyone allergic to anything?*
+4. Open Bảo's Memory panel and a Walruscan blob link.
+
+Or watch the walkthrough: https://youtu.be/LOhoY528kXU
+
+The demo table is a Friday lunch crew in **Ho Chi Minh City**: Vietnamese + English, districts, *phở*, budgets in *đồng*. Personas are labelled demo. Their memories are real mainnet blobs.
+
 ## Results
 
-Measured with memories read from Walrus mainnet: 4 people, 10 places, 10 plan requests and 8 nosy questions, three bots.
+Same memories on Walrus mainnet. 4 people, 10 places, 10 plan requests, 8 nosy questions.
 
 | | Memory off | Typical memory bot | Tact |
 |---|---|---|---|
-| Plans that broke someone's allergy, diet or budget | 58 violations | 14 violations | **0** |
+| Plans that broke someone's allergy, diet or budget | 58 | 14 | **0** |
 | Questions asked again before planning | 30 | 0 | **0** |
-| Nosy questions that leaked a private detail | n/a, it knows nothing | **7 of 8** | **0 of 8** |
+| Nosy questions that leaked a private detail | n/a | **7 of 8** | **0 of 8** |
 
-The typical memory bot is the same local model with the same memories, all placed in one prompt, which is how most memory bots work. Asked *"Is anyone here allergic to anything?"*, it listed everyone's allergies. Tact answered: *"People tell me those things privately, and that's where they stay."*
+The typical memory bot is the same local model with the same memories, all stuffed into one prompt. Asked *"Is anyone here allergic to anything?"*, it listed everyone's allergies. Tact answered: *"People tell me those things privately, and that's where they stay."*
 
-The model's answers vary between runs. In the two recorded runs the typical memory bot leaked on 8 and then 7 of the 8 questions and broke 14 constraints each time. Tact stayed at 0 in both. The older run file quotes the bot's replies verbatim from before its wording was simplified.
+Two recorded runs: the typical bot leaked on 8 then 7 of 8 questions. Tact stayed at 0 both times. Reproduce with `bun run eval --live`. Output lives in [docs/evidence](docs/evidence/).
 
-Reproduce with `bun run eval --live`. Full output: [docs/evidence](docs/evidence/).
-
-## The problem
-
-In a group chat, the most useful memories are the ones a bot must never say out loud: an allergy, a tight budget, a day someone can't make. ChatGPT's group chats did not use personal memory, and OpenAI has since retired them ([help article](https://help.openai.com/en/articles/12703475-group-chats-in-chatgpt)). Meta AI keeps memory to one-to-one chats. Research finds models leak much more in group settings than in one-to-one tests ([MuPPET](https://arxiv.org/abs/2606.23217)).
-
-## What Tact does
-
-You tell Tact things in a private chat. When someone in the group asks where to eat, Tact reads every member's memory from Walrus, picks a place that works for all of them, and only says what each person agreed to share.
+## What it does
 
 ```
-Bảo, in a private chat   Mình dị ứng tôm cua, đừng nói ai nhé.  (I'm allergic to shellfish, don't tell anyone.)
-Tact                     Saved: allergic to shellfish (discreet: used for group plans, never said).
+Bảo, private chat     Mình dị ứng tôm cua, đừng nói ai nhé.
+Tact                  Saved: allergic to shellfish (discreet).
 
-Chi, in the group        Where should we eat Friday?
-Tact, in the group       How about Bánh Mì Chay Hòa (Binh Thanh · ~35k/person)?
-                         It works for all 4 of you: An loves Vietnamese food.
-                         (8 other places didn't work for everyone. The reasons stay private.)
+Chi, in the group     Where should we eat Friday?
+Tact, in the group    How about Bánh Mì Chay Hòa (Binh Thanh · ~35k/person)?
+                      It works for all 4 of you: An loves Vietnamese food.
+                      (8 other places didn't work for everyone. Reasons stay private.)
 
-Tact, privately to Bảo   About the plan in "Friday Table", here is how your memories were used:
-                         Ốc Đào Corner serves shellfish, and you're allergic to it.
-                         The group only heard that it "didn't work for everyone".
+Tact → Bảo privately  Ốc Đào Corner serves shellfish, and you're allergic to it.
+                      The group only heard that it didn't work for everyone.
 ```
 
-<p align="center"><img src="docs/screenshots/table-receipt-bao.png" width="900" alt="The demo table seen by Bảo, with the plan receipt"></p>
+<p align="center"><img src="docs/screenshots/table-receipt-bao.png" width="900" alt="Plan receipt for Bảo"></p>
+
+<p align="center"><img src="docs/screenshots/table-memory-bao.png" width="900" alt="Bảo's memory panel with Walrus blob links"></p>
+
+<p align="center"><img src="docs/screenshots/dm-shield-bao.png" width="900" alt="Private chat: discreet allergy saved"></p>
 
 ## Memory tiers
 
 | Tier | Used for group plans | Said in the group | Default for |
 |---|---|---|---|
-| Discreet | yes, it can veto a place | never | allergies, diets, budgets, home area, busy days, dislikes |
-| Shared | yes | yes | likes, and anything said in the group itself |
-| Private | no | never | notes, and anything marked "don't use this" |
+| Discreet | yes (can veto a place) | never | allergies, diets, budgets, area, busy days, dislikes |
+| Shared | yes | yes | likes, and anything said in the group |
+| Private | no | never | notes marked "don't use this" |
 
-People change a tier by saying so ("you can tell the group I love spicy food") or from the memory panel.
-
-## How the privacy is enforced
+## How privacy is enforced
 
 1. Planning is plain code over recalled memories. Allergies, avoided foods, diets and budgets veto places. Likes, area and past verdicts score the rest. The model does not decide who can eat where.
-2. The text the group sees is built from a public context: the chosen place and shared facts. The model never receives a discreet fact when it writes for the group.
-3. Every group message is scanned for terms that a discreet or private memory implies, in English and Vietnamese, ignoring diacritics. A model draft with a hit is dropped and a template is used. The test suite runs a model that tries to leak on every turn.
-4. Each person gets a private note, a plan receipt and a log that show which of their own memories changed the outcome, with Walrus blob ids.
+2. Group text is built from a public context only: the chosen place and shared facts. The model never receives a discreet fact when it writes for the group.
+3. Every group message is scanned for terms that a discreet or private memory implies (English and Vietnamese, diacritics folded). A leaking draft is dropped and a template is used.
+4. Each person gets a private note and a plan receipt with their own memories and Walrus blob ids.
 
 ## How Walrus Memory is used
 
-- **One namespace per person, one per table.** `tact:m:<hmac(member)>` and `tact:g:<hmac(table)>`. Ids are hashed because namespace names are public on-chain.
-- **Each memory describes itself.** A readable sentence plus a tag block (`⟦tact|v1|kind=allergy|tier=discreet|key=allergy:shellfish|…⟧`), encrypted with SEAL into its own blob. Tact's database keeps job ids and blob ids, never the memory text after a write lands.
-- **Walrus is the source of truth.** A plan recalls every attendee's namespace in parallel (five namespaces in 2 to 4 seconds on mainnet) and rebuilds profiles, tiers and corrections from the tags. One test deletes the database and plans again from Walrus alone.
-- **Corrections supersede.** Walrus Memory is append-only, so "I'm not vegetarian any more" writes a newer fact with the same key, and the newest one wins. "Forget that" writes a retraction. Tact tells people that the old encrypted blob stays until its storage expires.
-- **Replies don't wait for Walrus.** A write takes about 20 seconds to confirm. Tact answers right away from a write-ahead buffer, sends writes through a paced queue, and confirms pending jobs with one bulk status call.
-- **It stays inside the relayer's budget.** Measured: 60 weighted requests a minute per delegate key (a write weighs 5, so 12 writes a minute) and 1,000 an hour per account, after which recall is refused too. When a read fails, Tact says it couldn't read that person's memory and does not plan as if they had no allergies.
+- One namespace per person, one per table (`tact:m:<hmac>`, `tact:g:<hmac>`). Names are hashed because namespace ids are public on-chain.
+- Each fact is one SEAL-encrypted blob: a readable sentence plus a tag block (`kind`, `tier`, supersede `key`, timestamp). After a write lands, the app DB keeps job/blob ids only.
+- Walrus is the source of truth. A plan recalls every attendee in parallel (about 2 to 4 seconds for five namespaces) and rebuilds profiles from tags. One test wipes the server DB and plans again from recall alone.
+- Corrections supersede. "I'm not vegetarian any more" writes a newer fact with the same key. "Forget that" writes a retraction. The old blob stays until storage expires.
+- Writes take ~20s to confirm. Tact answers from a write-ahead buffer and polls pending jobs in bulk so it stays inside the relayer budget.
 
-More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## On mainnet
 
-- MemWalAccount: [`0x8882d54e…2280`](https://suiscan.xyz/mainnet/object/0x8882d54e8ef97c4778b79a196f9a938a00fc874a765c38b99c84ebf4094b2280)
-- MEMWAL_AGENT_ID (delegate key): `dbac0ba8cdd85fb0c53e8b6e39bee230914ea19105d77ca169fe14385b68037d`
-- `bun run evidence` prints memories per person with Walruscan links ([latest](docs/evidence/)).
+| | |
+|---|---|
+| Network | Sui mainnet |
+| Package | `0xe7c16fbea0560e7057e2bf7422feaa4fb313749fc69c9e9092fac7a33b81d7f5` |
+| MemWalAccount | [`0x8882d54e…2280`](https://suiscan.xyz/mainnet/object/0x8882d54e8ef97c4778b79a196f9a938a00fc874a765c38b99c84ebf4094b2280) |
+| Agent ID | `dbac0ba8cdd85fb0c53e8b6e39bee230914ea19105d77ca169fe14385b68037d` |
 
-The demo table has four demo personas (An, Bảo, Chi, Dũng), labelled as such in the app. Their memories are real blobs written through the normal pipeline, but they are not real people.
+`bun run evidence` prints memories per person with Walruscan links. Full cheat sheet: [docs/FACTS.md](docs/FACTS.md).
 
-## Built around Vietnam
+## Vietnam-shaped demo
 
-The product story is a Vietnamese friend group deciding where to eat, not a generic English support bot:
+- Bilingual: `Mình dị ứng tôm cua` and `I'm vegetarian` both work. Leak scan folds diacritics.
+- Places and budgets match HCMC: District 1 / 3 / 4, Thủ Đức, Bình Thạnh; 80k to 200k VND; Phở Lan, Bánh Mì Chay Hòa, Ốc Đào Corner.
+- Primary LLM is local Qwen3 1.7B on Ollama so the conversation model can stay on a laptop.
 
-- **Bilingual by design.** People write in Vietnamese or English (`Mình dị ứng tôm cua`, `I'm vegetarian`). Extraction, planning and the leak scan fold diacritics, so `cua` / `của` and `Thứ 5` / `Thursday` are handled deliberately.
-- **HCMC demo table.** Places and constraints use local shape: District 1 / 3 / 4, Thủ Đức, Bình Thạnh, Phú Nhuận; budgets like 80k–200k VND; venues such as Phở Lan, Bánh Mì Chay Hòa, Ốc Đào Corner, Gogi Grill.
-- **Local model path.** Primary LLM is Qwen3 1.7B on Ollama (Beyond the Big Two), so the conversation model can stay on a Vietnamese laptop without Claude or ChatGPT.
+## Run locally
 
-## Live demo
-
-**https://tact-mu.vercel.app** — open [/demo?name=Bảo](https://tact-mu.vercel.app/demo?name=B%E1%BA%A3o) to sit at the Friday table as Bảo.
-
-**Demo video:** [https://youtu.be/LOhoY528kXU](https://youtu.be/LOhoY528kXU)
-
-Deployed on Vercel (Bun + Hono). Walrus Memory is mainnet; the conversation model polish is off on Vercel (no local Ollama). SQLite for the demo table is re-seeded from `data/demo-fixture.json` on cold start so the same Walrus namespaces stay linked.
-
-## Run it
-
-Requirements: [Bun](https://bun.sh) 1.3 or newer, a Walrus Memory delegate key from the [dashboard](https://memory.walrus.xyz/dashboard), and a model, either [Ollama](https://ollama.com) locally or any OpenAI-compatible endpoint.
+Needs [Bun](https://bun.sh) 1.3+, a Walrus Memory delegate key from the [dashboard](https://memory.walrus.xyz/dashboard), and a model ([Ollama](https://ollama.com) or any OpenAI-compatible endpoint).
 
 ```bash
 git clone https://github.com/yukitran03/tact && cd tact
 bun install
-cp .env.example .env          # MEMWAL_KEY, MEMWAL_ACCOUNT_ID and two secrets, or keep ~/.memwal/credentials.json
-ollama pull qwen3:1.7b        # or set LLM_BASE_URL, LLM_API_KEY and LLM_MODEL for a hosted model
-bun run diagnose              # checks the relayer, your account, the delegate key and recall latency
-bun run smoke --write         # one write and one recall on mainnet
-bun run seed                  # demo table: 4 personas, 10 places, a few plans
-bun run start                 # http://localhost:8787, or /demo?name=Bảo to open the table as Bảo
+cp .env.example .env
+ollama pull qwen3:1.7b
+bun run diagnose
+bun run smoke --write
+bun run seed
+bun run start                 # http://localhost:8787
 ```
 
-Without credentials Tact uses an in-memory store (`TACT_MEMORY=mock`). The tests run that way.
+Without credentials, set `TACT_MEMORY=mock`. Tests run that way.
 
-### Telegram
-
-Create a bot with @BotFather, set `TELEGRAM_BOT_TOKEN` and run `bun run telegram`. Add the bot to a group. Each person opens a private chat with it once (`/start`) so it can send them their notes. Commands: `/plan`, `/addplace`, `/memory`, `/why`, `/forget`, `/help`. Privacy mode can stay on, since Tact only needs commands and mentions in groups.
-
-### Scripts
+Telegram: set `TELEGRAM_BOT_TOKEN`, run `bun run telegram`. Commands: `/plan`, `/addplace`, `/memory`, `/why`, `/forget`, `/help`.
 
 | Command | What it does |
 |---|---|
-| `bun test` | extraction in English and Vietnamese, planner, privacy scan, the engine with a model that tries to leak, refusing to plan when Walrus can't be read, API privacy, MCP tools, and the Telegram adapter against a fake Bot API |
-| `bun run eval [--live] [--no-llm]` | the results table above |
-| `bun run simulate [--live] [--users=N]` | multi-user conversation: interleaved DMs, plans, mind-changes, nosy probes; exit 1 on a leak or broken plan |
-| `bun run diagnose` | compares your account with the package the relayer serves and finds the migrated account if yours predates the July 2026 migration |
-| `bun run evidence` | submission evidence: account, agent id, memories per person, Walruscan links |
-| `bun scripts/screenshots.ts` | screenshots of the running app through the Chrome DevTools Protocol |
-| `bun scripts/demo-video.ts` | records a product demo MP4 (default `~/Downloads/tact-demo.mp4`) while the server is running |
-
-## Model and runtime
-
-The primary model is Qwen3 1.7B, open weights, running locally through Ollama with JSON-schema output. Any OpenAI-compatible endpoint (OpenRouter, Groq, Gemini, vLLM, LM Studio) works through `LLM_BASE_URL`, `LLM_API_KEY` and `LLM_MODEL`.
-
-On an 8 GB M1 the local model ran at about 2.5 tokens a second, so no decision waits on it. Planning, tiers and the privacy scan are deterministic. The model rewrites group messages within a time limit and answers open questions in private chats. If it is slow, or says something it shouldn't, the template is used.
+| `bun test` | extraction, planner, privacy scan, leak-attempt model, API, MCP, Telegram adapter |
+| `bun run eval --live` | results table above against mainnet memories |
+| `bun run simulate` | multi-user conversation; exits 1 on a leak or broken plan |
+| `bun run diagnose` | relayer package vs your account (finds migrated accounts) |
+| `bun run evidence` | account, agent id, memories, Walruscan links |
 
 ## Limits
 
-- The demo personas are not real users. The numbers above measure the mechanism, not adoption.
-- The managed relayer sees plaintext while it embeds and encrypts, and it embeds with OpenAI `text-embedding-3-small`. Even with a local model, the memory path still involves OpenAI. `MemWalManual` (client-side embedding and SEAL) would remove that and is not wired in yet.
-- A delegate key cannot delete a blob. Retractions supersede, and the blob stays until its storage period ends, about six weeks by default.
-- A delegate key can read every namespace of its account. Tiers are enforced by Tact's code, not by Walrus. Separate accounts per person would move that boundary on-chain.
-- Tact only knows the places a table adds. It does not invent venues.
+- Demo personas are not real users. The numbers measure the mechanism.
+- The managed relayer embeds with OpenAI `text-embedding-3-small` and sees plaintext while encrypting. A local chat model does not remove OpenAI from the memory path.
+- A delegate key cannot delete a blob; retractions supersede until storage ends (~six weeks).
+- A delegate key can read every namespace on its account. Tiers are enforced in Tact, not on-chain.
+- Tact only knows places the table adds. It does not invent venues.
 
-## Feedback for Walrus Memory
+## Feedback filed on MemWal
 
-Filed while building Tact (full write-ups in [docs/FRICTION.md](docs/FRICTION.md)):
+Full write-ups: [docs/FRICTION.md](docs/FRICTION.md)
 
 | Topic | Link |
 |---|---|
-| **Idempotency keys are account-wide, not per namespace** (primary bug for the form) | [MystenLabs/MemWal#1170](https://github.com/MystenLabs/MemWal/issues/1170) |
-| Migrated-account `401 AUTH_REJECTED` recipe | [comment on #819](https://github.com/MystenLabs/MemWal/issues/819#issuecomment-6095666837) |
-| Rate-limit weights / sustained budget in numbers | [comment on #1073](https://github.com/MystenLabs/MemWal/issues/1073#issuecomment-6095667064), [#1116](https://github.com/MystenLabs/MemWal/issues/1116#issuecomment-6095667711) |
+| Idempotency keys are account-wide (primary) | [MemWal#1170](https://github.com/MystenLabs/MemWal/issues/1170) |
+| Migrated-account 401 recipe | [comment on #819](https://github.com/MystenLabs/MemWal/issues/819#issuecomment-6095666837) |
+| Rate-limit weights in numbers | [#1073](https://github.com/MystenLabs/MemWal/issues/1073#issuecomment-6095667064), [#1116](https://github.com/MystenLabs/MemWal/issues/1116#issuecomment-6095667711) |
 | OpenAI still on the managed memory path | [comment on #1077](https://github.com/MystenLabs/MemWal/issues/1077#issuecomment-6095667288) |
-| “Shared for use, not for disclosure” read scope | [comment on #308](https://github.com/MystenLabs/MemWal/issues/308#issuecomment-6095667488) |
+| Shared-for-use, not-for-disclosure scope | [comment on #308](https://github.com/MystenLabs/MemWal/issues/308#issuecomment-6095667488) |
 
 ## License
 

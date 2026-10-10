@@ -1,8 +1,6 @@
 # How to add memory to a group chatbot without leaking what people tell it in private
 
-*For Medium or Inkray (500–800 words). Measured on Walrus Memory mainnet for Walrus Sessions 8.*
-
----
+Measured on Walrus Memory mainnet for Walrus Sessions 8.
 
 Every friend group has the Friday thread. Where are we eating? Someone suggests seafood. The friend who is allergic to shellfish does not want to say so in front of eight people. Someone else is short on money this month. Forty messages later the group goes back to last week's place.
 
@@ -24,9 +22,9 @@ Each person has their own Walrus Memory namespace, and each group has one. Names
 Allergic to shellfish. Must avoid it. ⟦tact|v1|kind=allergy|tier=discreet|key=allergy:shellfish|…⟧
 ```
 
-Tact's database keeps job ids and blob ids, never the memory text once Walrus confirms it. One test deletes the server database and plans again from recall alone. A plan recalls every attendee's namespace in parallel (about 2–4 seconds for five namespaces on mainnet) and rebuilds each profile from the tags.
+Tact's database keeps job ids and blob ids, never the memory text once Walrus confirms it. One test deletes the server database and plans again from recall alone. A plan recalls every attendee's namespace in parallel (about 2 to 4 seconds for five namespaces on mainnet) and rebuilds each profile from the tags.
 
-Tiers: **discreet** (default for allergies, diets, budgets, areas: used to veto, never said), **shared** (can be quoted), **private** (never used for the group). Planning is plain code. The model that writes group messages never sees a discreet fact, and every group message is scanned in English and Vietnamese; a leaking draft is replaced by a template.
+Tiers: **discreet** (default for allergies, diets, budgets, areas: used to veto, never said), **shared** (can be quoted), or **private** (never used for the group). Planning is plain code. The model that writes group messages never sees a discreet fact, and every group message is scanned in English and Vietnamese; a leaking draft is replaced by a template.
 
 ## Before and after
 
@@ -49,15 +47,16 @@ The typical bot puts every recalled memory into one prompt. Asked "Is anyone all
 
 ## Real use
 
-From 6–9 October 2026 the bot ran on mainnet with four labelled demo personas (11–12 blobs each, 57 member memories total). The web demo opens the table as any of them (`/demo?name=Bảo`) with plan receipts and Walruscan links. A multi-user simulator later ran 90+ interleaved turns for six people with 0 violations and 0 leaks. They are labelled demo on purpose: the numbers measure the mechanism. Friends use the same invite code or Telegram path.
+From 6 to 9 October 2026 the bot ran on mainnet with four labelled demo personas (11 to 12 blobs each, 57 member memories total). The web demo opens the table as any of them (`/demo?name=Bảo`) with plan receipts and Walruscan links. A multi-user simulator later ran 90+ interleaved turns for six people with 0 violations and 0 leaks. They are labelled demo on purpose: the numbers measure the mechanism.
 
 ## Try it
 
-Live demo: https://tact-mu.vercel.app/demo?name=Bảo · Video: https://youtu.be/LOhoY528kXU · Repo: https://github.com/yukitran03/tact
+- Live: https://tact-mu.vercel.app/demo?name=Bảo
+- Video: https://youtu.be/LOhoY528kXU
+- Repo: https://github.com/yukitran03/tact
 
-Tests, `bun run eval --live`, `bun run simulate`, web app, MCP for Claude Code/Codex, Telegram. Primary model: local Qwen3 1.7B via Ollama (or any OpenAI-compatible endpoint). The model never decides who can eat where.
+Primary model: local Qwen3 1.7B via Ollama (or any OpenAI-compatible endpoint). The model never decides who can eat where.
 
 *Built for Walrus Sessions 8: Chatbots That Remember.* #WalrusMemory
 
----
-Sources: [OpenAI group chats and memory](https://help.openai.com/en/articles/12703475-group-chats-in-chatgpt); [Meta AI memory in individual chats](https://alternativeto.net/news/2024/10/whatsapp-s-new-meta-ai-chat-memory-to-personalize-conversations-with-stored-details); [MuPPET](https://arxiv.org/abs/2606.23217).
+Sources: [OpenAI group chats](https://help.openai.com/en/articles/12703475-group-chats-in-chatgpt); [Meta AI memory](https://alternativeto.net/news/2024/10/whatsapp-s-new-meta-ai-chat-memory-to-personalize-conversations-with-stored-details); [MuPPET](https://arxiv.org/abs/2606.23217).
