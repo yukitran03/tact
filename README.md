@@ -1,7 +1,8 @@
 <p align="center"><img src="docs/brand/logo.png" width="360" alt="Tact"></p>
 
 <p align="center">A group chat bot that remembers what each person tells it in private, and uses it to plan for the whole group without repeating it.<br>
-Built on <a href="https://github.com/MystenLabs/MemWal">Walrus Memory</a> for Walrus Sessions 8, <i>Chatbots That Remember</i>.</p>
+Built on <a href="https://github.com/MystenLabs/MemWal">Walrus Memory</a> for Walrus Sessions 8, <i>Chatbots That Remember</i>.<br>
+Demo table is a Friday lunch crew in <b>Ho Chi Minh City</b>: Vietnamese + English, districts, <i>phở</i>, budgets in <i>đồng</i>.</p>
 
 <p align="center"><img src="docs/screenshots/landing-light.png" width="900" alt="Tact landing page"></p>
 
@@ -81,6 +82,14 @@ More detail in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 The demo table has four demo personas (An, Bảo, Chi, Dũng), labelled as such in the app. Their memories are real blobs written through the normal pipeline, but they are not real people.
 
+## Built around Vietnam
+
+The product story is a Vietnamese friend group deciding where to eat, not a generic English support bot:
+
+- **Bilingual by design.** People write in Vietnamese or English (`Mình dị ứng tôm cua`, `I'm vegetarian`). Extraction, planning and the leak scan fold diacritics, so `cua` / `của` and `Thứ 5` / `Thursday` are handled deliberately.
+- **HCMC demo table.** Places and constraints use local shape: District 1 / 3 / 4, Thủ Đức, Bình Thạnh, Phú Nhuận; budgets like 80k–200k VND; venues such as Phở Lan, Bánh Mì Chay Hòa, Ốc Đào Corner, Gogi Grill.
+- **Local model path.** Primary LLM is Qwen3 1.7B on Ollama (Beyond the Big Two), so the conversation model can stay on a Vietnamese laptop without Claude or ChatGPT.
+
 ## Run it
 
 Requirements: [Bun](https://bun.sh) 1.3 or newer, a Walrus Memory delegate key from the [dashboard](https://memory.walrus.xyz/dashboard), and a model, either [Ollama](https://ollama.com) locally or any OpenAI-compatible endpoint.
@@ -130,7 +139,15 @@ On an 8 GB M1 the local model ran at about 2.5 tokens a second, so no decision w
 
 ## Feedback for Walrus Memory
 
-Written up with repros in [docs/FRICTION.md](docs/FRICTION.md), including a credentials file from before the July 2026 migration that fails with an unexplained `401 AUTH_REJECTED`, and idempotency keys that are scoped to the account rather than the namespace.
+Filed while building Tact (full write-ups in [docs/FRICTION.md](docs/FRICTION.md)):
+
+| Topic | Link |
+|---|---|
+| **Idempotency keys are account-wide, not per namespace** (primary bug for the form) | [MystenLabs/MemWal#1170](https://github.com/MystenLabs/MemWal/issues/1170) |
+| Migrated-account `401 AUTH_REJECTED` recipe | [comment on #819](https://github.com/MystenLabs/MemWal/issues/819#issuecomment-6095666837) |
+| Rate-limit weights / sustained budget in numbers | [comment on #1073](https://github.com/MystenLabs/MemWal/issues/1073#issuecomment-6095667064), [#1116](https://github.com/MystenLabs/MemWal/issues/1116#issuecomment-6095667711) |
+| OpenAI still on the managed memory path | [comment on #1077](https://github.com/MystenLabs/MemWal/issues/1077#issuecomment-6095667288) |
+| “Shared for use, not for disclosure” read scope | [comment on #308](https://github.com/MystenLabs/MemWal/issues/308#issuecomment-6095667488) |
 
 ## License
 
